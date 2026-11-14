@@ -1,55 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, onSnapshot, query, limit, where, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, limit, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { ArrowRight, ShoppingBag, Truck, Shield, Headphones, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
-
-const features = [
-    {
-        icon: Truck,
-        title: 'Free Shipping',
-        description: 'On orders over ฿1,500'
-    },
-    {
-        icon: Shield,
-        title: 'Secure Payment',
-        description: '100% secure transactions'
-    },
-    {
-        icon: Headphones,
-        title: '24/7 Support',
-        description: 'Dedicated customer service'
-    },
-    {
-        icon: ShoppingBag,
-        title: 'Easy Returns',
-        description: '30-day return policy'
-    }
-];
 
 const Home = () => {
     const [featuredProducts, setFeaturedProducts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [hero, setHero] = useState({
-        titleLine1: 'Level Up Your',
-        titleLine2: 'Gaming Experience',
-        subtitle: 'Explore cutting-edge gaming gear, high-performance tech, and premium accessories. Unleash your potential with lightning-fast delivery.',
-        bgImageUrl: 'https://images.unsplash.com/photo-1587202372634-32705e3bf49c?w=1920&h=1080&fit=crop',
-        heroImageUrl: 'https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=800&h=600&fit=crop',
-    });
-
-    // Real-time hero banner settings
-    useEffect(() => {
-        const unsub = onSnapshot(doc(db, 'settings', 'hero'), (snap) => {
-            if (snap.exists()) setHero(prev => ({ ...prev, ...snap.data() }));
-        });
-        return () => unsub();
-    }, []);
+    const hero = {
+        titleLine1: 'Rangkai Momen',
+        titleLine2: 'Penuh Bahagia',
+        subtitle: 'Buket istimewa untuk wisuda, ulang tahun, dan setiap cerita yang ingin dirayakan.',
+        bgImageUrl: '',
+        heroImageUrl: '/placeholder-buket.svg',
+    };
 
     // Real-time listener for featured products
     useEffect(() => {
-        setLoading(true);
         // Query up to 12 products marked as featured
         const q = query(
             collection(db, 'products'),
@@ -61,7 +29,7 @@ const Home = () => {
             const productsData = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
-            }));
+            })).filter(product => product.isActive !== false);
             setFeaturedProducts(productsData);
             setLoading(false);
         }, (error) => {
@@ -93,10 +61,7 @@ const Home = () => {
         <div className="min-h-screen">
             {/* Hero Section */}
             <section className="relative overflow-hidden py-12 sm:py-16 md:py-24 lg:py-32">
-                {/* Gaming PC Background with Blur */}
-                <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${hero.bgImageUrl}')` }}></div>
-                <div className="absolute inset-0 backdrop-blur-md bg-black/60"></div>
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-900/80 via-black/70 to-gray-900/80"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-rose-100 via-orange-50 to-amber-100"></div>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                     <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
                         <div className="animate-slide-up text-center md:text-left">
@@ -109,11 +74,11 @@ const Home = () => {
                             </p>
                             <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 justify-center md:justify-start">
                                 <Link to="/products" className="btn-primary inline-flex items-center justify-center space-x-2">
-                                    <span>Shop Now</span>
+                                    <span>Lihat Katalog</span>
                                     <ArrowRight className="w-5 h-5" />
                                 </Link>
                                 <Link to="/products" className="btn-secondary">
-                                    Browse Categories
+                                    Pilih Buket
                                 </Link>
                             </div>
                         </div>
@@ -123,7 +88,7 @@ const Home = () => {
                             <div className="relative corner-clip-lg overflow-hidden border-4 border-cyan-500/50" style={{ boxShadow: '0 0 40px rgba(0, 255, 255, 0.4)' }}>
                                 <img
                                     src={hero.heroImageUrl}
-                                    alt="Gaming PC Setup"
+                                    alt="Ilustrasi placeholder buket, ganti dengan foto buket asli"
                                     className="w-full h-full object-cover"
                                 />
                             </div>
@@ -137,12 +102,12 @@ const Home = () => {
             <section className="py-12 sm:py-16 md:py-20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-8 md:mb-12">
-                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black mb-3 md:mb-4 uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                            <span className="text-cyan-400" style={{ textShadow: '0 0 20px rgba(0, 255, 255, 0.8)' }}>Featured </span>
-                            <span className="text-gradient" style={{ textShadow: '0 0 20px rgba(255, 0, 255, 0.6)' }}>Products</span>
+                            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black mb-3 md:mb-4" style={{ fontFamily: 'serif' }}>
+                            <span className="text-cyan-400">Pilihan </span>
+                            <span className="text-gradient">Buket</span>
                         </h2>
                         <p className="text-base sm:text-lg md:text-xl text-gray-400 font-bold" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                            Handpicked items just for you
+                            Rangkaian bunga dan hadiah untuk momen berkesan.
                         </p>
                     </div>
 
@@ -198,8 +163,8 @@ const Home = () => {
                     ) : (
                         <div className="text-center py-12 md:py-20 bg-gray-900/50 corner-clip border-2 border-cyan-500/30" style={{ boxShadow: '0 0 30px rgba(0, 255, 255, 0.2)' }}>
                             <ShoppingBag className="w-16 h-16 md:w-24 md:h-24 mx-auto text-cyan-400 mb-4" style={{ filter: 'drop-shadow(0 0 15px rgba(0, 255, 255, 0.6))' }} />
-                            <h3 className="text-2xl md:text-3xl font-black text-cyan-400 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 20px rgba(0, 255, 255, 0.6)' }}>No products available</h3>
-                            <p className="text-gray-400 text-base md:text-lg font-bold" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Check back soon for amazing deals!</p>
+                            <h3 className="text-2xl md:text-3xl font-bold text-rose-800 mb-2">Buket pilihan segera hadir</h3>
+                            <p className="text-gray-600 text-base md:text-lg">Admin dapat menambahkan katalog dari panel admin.</p>
                         </div>
                     )}
                 </div>
@@ -211,13 +176,13 @@ const Home = () => {
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjEpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20"></div>
                 <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white mb-4 md:mb-6 uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 30px rgba(255, 255, 255, 0.5)' }}>
-                        Ready to Start Shopping?
+                        Hadiahkan Senyum Hari Ini
                     </h2>
                     <p className="text-base sm:text-lg md:text-xl text-cyan-100 mb-6 md:mb-8 max-w-2xl mx-auto font-bold px-4" style={{ fontFamily: 'Rajdhani, sans-serif', textShadow: '0 0 10px rgba(0, 255, 255, 0.3)' }}>
-                        Join thousands of satisfied customers and discover amazing deals on premium products.
+                        Temukan rangkaian bunga yang dirancang untuk cerita spesial Anda.
                     </p>
                     <Link to="/products" className="bg-white text-cyan-600 px-6 sm:px-8 py-3 sm:py-4 corner-clip-sm font-black text-base sm:text-lg hover:bg-gray-100 transition-all duration-300 inline-flex items-center justify-center space-x-2 border-4 border-white uppercase tracking-wide" style={{ fontFamily: 'Orbitron, sans-serif', boxShadow: '0 0 40px rgba(255, 255, 255, 0.5), 0 10px 30px rgba(0, 0, 0, 0.3)', transform: 'translateY(0)', '&:hover': { transform: 'translateY(-4px)' } }}>
-                        <span>Start Shopping</span>
+                        <span>Lihat Semua Buket</span>
                         <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
                     </Link>
                 </div>

@@ -179,8 +179,10 @@ const Wishlist = () => {
                                         )}
                                     </div>
 
-                                    {/* Add to Cart */}
-                                    <button
+                                    {product.productType === 'affiliate' ? <>
+                                      <p className="text-xs text-rose-800">Tautan affiliate — kami dapat menerima komisi tanpa biaya tambahan untuk Anda.</p>
+                                      <a href={product.affiliateUrl} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} className="btn-primary w-full inline-flex justify-center">Lihat di Shopee</a>
+                                    </> : <button
                                         onClick={() => !outOfStock && addToCart(product)}
                                         disabled={outOfStock}
                                         className={`w-full flex items-center justify-center gap-2 py-2.5 corner-clip-sm font-black text-sm uppercase tracking-wide transition-all duration-200 border-2
@@ -197,7 +199,7 @@ const Wishlist = () => {
                                         ) : (
                                             <><ShoppingCart className="w-4 h-4" /> Add to Cart</>
                                         )}
-                                    </button>
+                                    </button>}
                                 </div>
                             </div>
                         );

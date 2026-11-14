@@ -15,7 +15,7 @@ const AdminSettings = () => {
     const adminInfo = { uid: userProfile?.uid, name: userProfile?.displayName, email: userProfile?.email };
 
     // Shipping settings
-    const [shippingForm, setShippingForm] = useState({ flatFee: 100, freeThreshold: 1500 });
+    const [shippingForm, setShippingForm] = useState({ flatFee: 0, freeThreshold: 0 });
     const [shippingLoading, setShippingLoading] = useState(false);
     const [shippingSaving, setShippingSaving] = useState(false);
 
@@ -26,10 +26,10 @@ const AdminSettings = () => {
 
     // Footer settings
     const [footerForm, setFooterForm] = useState({
-        description: 'Your ultimate portal to the future of gaming gear. We provide high-performance tech with a cyberpunk edge for elite players and digital enthusiasts.',
-        address: 'Level 99, Cyber District, BKK',
-        phone: '+66 81 234 5678',
-        email: 'support@techno-world.io',
+        description: 'Buket dan hadiah kecil untuk merayakan cerita istimewa.',
+        address: 'Alamat toko belum diatur',
+        phone: '',
+        email: '',
         facebook: '',
         instagram: '',
         telegram: '',
@@ -40,11 +40,11 @@ const AdminSettings = () => {
 
     // Hero banner settings
     const [heroForm, setHeroForm] = useState({
-        titleLine1: 'Level Up Your',
-        titleLine2: 'Gaming Experience',
-        subtitle: 'Explore cutting-edge gaming gear, high-performance tech, and premium accessories. Unleash your potential with lightning-fast delivery.',
-        bgImageUrl: 'https://images.unsplash.com/photo-1587202372634-32705e3bf49c?w=1920&h=1080&fit=crop',
-        heroImageUrl: 'https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=800&h=600&fit=crop',
+        titleLine1: 'Rangkai Momen',
+        titleLine2: 'Penuh Bahagia',
+        subtitle: 'Buket istimewa untuk hari yang ingin dirayakan.',
+        bgImageUrl: '',
+        heroImageUrl: '/placeholder-buket.svg',
     });
     const [heroLoading, setHeroLoading] = useState(false);
     const [heroSaving, setHeroSaving] = useState(false);
@@ -147,8 +147,8 @@ const AdminSettings = () => {
             if (snap.exists()) {
                 const d = snap.data();
                 setShippingForm({
-                    flatFee: d.flatFee ?? 100,
-                    freeThreshold: d.freeThreshold ?? 1500,
+                    flatFee: d.flatFee ?? 0,
+                    freeThreshold: d.freeThreshold ?? 0,
                 });
             }
         } catch (e) {
@@ -176,7 +176,7 @@ const AdminSettings = () => {
             await logActivity({
                 type: 'settings', icon: 'Settings',
                 title: 'Shipping Settings Updated',
-                description: `Flat fee: K${flatFee} · Free shipping above K${freeThreshold}`,
+                description: `Biaya kirim: Rp${flatFee} · Gratis di atas Rp${freeThreshold}`,
                 color: 'yellow',
                 admin: adminInfo
             });
@@ -588,7 +588,7 @@ const AdminSettings = () => {
                                     <div>
                                         <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2"
                                             style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                            Flat Shipping Fee (K)
+                                            Biaya Kirim Tetap (Rupiah)
                                         </label>
                                         <p className="text-xs text-gray-500 font-bold mb-3" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
                                             Charged when order is below the free threshold.
@@ -611,7 +611,7 @@ const AdminSettings = () => {
                                     <div>
                                         <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2"
                                             style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                            Free Shipping Threshold (K)
+                                            Batas Gratis Ongkir (Rupiah, 0 = nonaktif)
                                         </label>
                                         <p className="text-xs text-gray-500 font-bold mb-3" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
                                             Orders at or above this amount get free shipping.
@@ -635,8 +635,7 @@ const AdminSettings = () => {
                                 <div className="p-4 bg-cyan-500/5 corner-clip-sm border border-cyan-500/20 text-sm font-bold" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
                                     <span className="text-gray-400">Preview: </span>
                                     <span className="text-cyan-400">
-                                        Orders under K{parseFloat(shippingForm.freeThreshold) || 0} → K{parseFloat(shippingForm.flatFee) || 0} shipping fee.
-                                        Orders K{parseFloat(shippingForm.freeThreshold) || 0}+ → FREE shipping.
+                                        Ongkir sementara Rp{parseFloat(shippingForm.flatFee) || 0}. Gratis jika subtotal mencapai Rp{parseFloat(shippingForm.freeThreshold) || 0}.
                                     </span>
                                 </div>
 
@@ -654,7 +653,7 @@ const AdminSettings = () => {
                 </div>
 
                 {/* ── Currency Exchange Rate ───────────────────────────────── */}
-                <div className="bg-gray-900 corner-clip border-2 border-yellow-500/30 relative overflow-hidden"
+                <div hidden className="bg-gray-900 corner-clip border-2 border-yellow-500/30 relative overflow-hidden"
                     style={{ boxShadow: '0 0 30px rgba(234,179,8,0.1)' }}>
                     <div className="absolute inset-0 opacity-5"
                         style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(234,179,8,0.1) 2px, rgba(234,179,8,0.1) 4px)' }}></div>

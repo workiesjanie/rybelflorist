@@ -4,6 +4,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Buket Bahagia customer-facing theme */
+@layer base {
+  body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; background-color: #fffaf8; background-image: radial-gradient(ellipse at top, #fff0f2 0%, #fffaf8 58%, #f7f4ef 100%); color: #3c3030; }
+  @media (min-width: 768px) { * { scrollbar-color: #e7aeb7 #fff5f4; } }
+}
+@layer components {
+  .btn-primary { background: linear-gradient(135deg,#d86f83,#ba526e); color: white; border-radius: 999px; clip-path: none; font-family: inherit; text-transform: none; letter-spacing: 0; box-shadow: 0 8px 22px rgba(186,82,110,.2); }
+  .btn-primary:hover { background: linear-gradient(135deg,#c96178,#a94460); box-shadow: 0 10px 25px rgba(186,82,110,.28); }
+  .btn-secondary { background: #fff; color: #8e4556; border: 1px solid #eccbd0; border-radius: 999px; clip-path: none; box-shadow: none; }
+  .card { color: #3c3030; background: rgba(255,255,255,.92); border: 1px solid #f0dfe0; border-radius: 1.25rem; clip-path: none; box-shadow: 0 8px 28px rgba(91,44,54,.07); backdrop-filter: blur(6px); }
+  .card::before { display:none; }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 12px 34px rgba(91,44,54,.12); }
+  .input-field { background:#fff; color:#3c3030; border:1px solid #e8cdd1; border-radius:.75rem; clip-path:none; }
+  .input-field:focus { border-color:#d86f83; box-shadow:0 0 0 3px rgba(216,111,131,.12); background:#fff; }
+  .input-field::placeholder { color:#aa9294; }
+}
+
 @layer base {
   body {
     font-family: 'Rajdhani', sans-serif;

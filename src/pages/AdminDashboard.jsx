@@ -12,7 +12,6 @@ import AdminOrders from './AdminOrders';
 import AdminCustomers from './AdminCustomers';
 import AdminSettings from './AdminSettings';
 import AdminCategories from './AdminCategories';
-import AdminBankAccounts from './AdminBankAccounts';
 import {
     LayoutDashboard,
     Package,
@@ -37,11 +36,16 @@ import {
     Star
 } from 'lucide-react';
 
+const isValidAffiliateUrl = (value) => {
+    try { return new URL(value).protocol === 'https:'; } catch { return false; }
+};
+
 
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState(() => {
         // Initialize from localStorage or default to 'dashboard'
-        return localStorage.getItem('adminActiveTab') || 'dashboard';
+        const savedTab = localStorage.getItem('adminActiveTab');
+        return ['dashboard', 'products', 'categories', 'orders', 'customers', 'settings'].includes(savedTab) ? savedTab : 'dashboard';
     });
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -69,13 +73,18 @@ const AdminDashboard = () => {
         rating: '',
         reviews: '',
         stock: '',
+        productType: 'store',
+        affiliateUrl: '',
+        affiliatePlatform: 'Shopee',
+        categoryId: '',
+        isActive: true,
         isFeatured: false
     });
 
     const mainRef = useRef(null);
 
     const { signOut, user, userProfile } = useAuth();
-    const { formatPrice, exchangeRate } = useCurrency();
+    const { formatPrice } = useCurrency();
     const navigate = useNavigate();
 
     // Save active tab to localStorage whenever it changes
@@ -199,9 +208,11 @@ const AdminDashboard = () => {
     // Add new product
     const handleAddProduct = async (e) => {
         e.preventDefault();
-        if (!formData.images || formData.images.length === 0) {
-            showToast('Please upload at least one product image', 'error');
-            return;
+        if (formData.productType === 'affiliate' && !isValidAffiliateUrl(formData.affiliateUrl)) {
+            showToast('Link affiliate harus berupa URL HTTPS yang valid', 'error'); return;
+        }
+        if (formData.productType === 'store' && (!Number.isFinite(Number(formData.price)) || Number(formData.price) <= 0 || !Number.isInteger(Number(formData.stock)) || Number(formData.stock) < 0)) {
+            showToast('Produk toko harus memiliki harga positif dan stok bilangan bulat valid', 'error'); return;
         }
         try {
             const productData = {
@@ -211,6 +222,11 @@ const AdminDashboard = () => {
                 rating: formData.rating ? parseFloat(formData.rating) : 0,
                 reviews: formData.reviews ? parseInt(formData.reviews) : 0,
                 stock: formData.stock ? parseInt(formData.stock) : 0,
+                productType: formData.productType || 'store',
+                affiliateUrl: formData.productType === 'affiliate' ? formData.affiliateUrl.trim() : '',
+                affiliatePlatform: formData.affiliatePlatform || 'Shopee',
+                categoryId: categories.find(c => c.name === formData.category)?.id || '',
+                isActive: formData.isActive !== false,
                 images: formData.images,
                 image: formData.images[0] || '',  // backward compat
             };
@@ -235,9 +251,11 @@ const AdminDashboard = () => {
     // Update existing product
     const handleUpdateProduct = async (e) => {
         e.preventDefault();
-        if (!formData.images || formData.images.length === 0) {
-            showToast('Please upload at least one product image', 'error');
-            return;
+        if (formData.productType === 'affiliate' && !isValidAffiliateUrl(formData.affiliateUrl)) {
+            showToast('Link affiliate harus berupa URL HTTPS yang valid', 'error'); return;
+        }
+        if (formData.productType === 'store' && (!Number.isFinite(Number(formData.price)) || Number(formData.price) <= 0 || !Number.isInteger(Number(formData.stock)) || Number(formData.stock) < 0)) {
+            showToast('Produk toko harus memiliki harga positif dan stok bilangan bulat valid', 'error'); return;
         }
         try {
             const productData = {
@@ -247,6 +265,11 @@ const AdminDashboard = () => {
                 rating: formData.rating ? parseFloat(formData.rating) : 0,
                 reviews: formData.reviews ? parseInt(formData.reviews) : 0,
                 stock: formData.stock ? parseInt(formData.stock) : 0,
+                productType: formData.productType || 'store',
+                affiliateUrl: formData.productType === 'affiliate' ? formData.affiliateUrl.trim() : '',
+                affiliatePlatform: formData.affiliatePlatform || 'Shopee',
+                categoryId: categories.find(c => c.name === formData.category)?.id || '',
+                isActive: formData.isActive !== false,
                 images: formData.images,
                 image: formData.images[0] || '',  // backward compat
             };
@@ -343,6 +366,11 @@ const AdminDashboard = () => {
             rating: product.rating?.toString() || '',
             reviews: product.reviews?.toString() || '',
             stock: product.stock?.toString() || '',
+            productType: product.productType || 'store',
+            affiliateUrl: product.affiliateUrl || '',
+            affiliatePlatform: product.affiliatePlatform || 'Shopee',
+            categoryId: product.categoryId || '',
+            isActive: product.isActive !== false,
             isFeatured: product.isFeatured || false
         });
         setShowAddForm(false);
@@ -365,6 +393,11 @@ const AdminDashboard = () => {
             rating: '',
             reviews: '',
             stock: '',
+            productType: 'store',
+            affiliateUrl: '',
+            affiliatePlatform: 'Shopee',
+            categoryId: '',
+            isActive: true,
             isFeatured: false
         });
     };
@@ -403,7 +436,6 @@ const AdminDashboard = () => {
         { id: 'categories', icon: Tag, label: 'Categories' },
         { id: 'orders', icon: ShoppingCart, label: 'Orders' },
         { id: 'customers', icon: Users, label: 'Customers' },
-        { id: 'bank-accounts', icon: Banknote, label: 'Bank Accounts' },
         { id: 'settings', icon: Settings, label: 'Settings' },
     ];
 
@@ -929,6 +961,12 @@ const AdminDashboard = () => {
                                                 </h3>
                                                 <div className="grid md:grid-cols-2 gap-6 relative z-10">
                                                     <div>
+                                                        <label className="block text-sm font-black text-cyan-300 mb-2">Tipe Produk *</label>
+                                                        <select name="productType" value={formData.productType || 'store'} onChange={handleInputChange} className="input-field">
+                                                            <option value="store">Buket milik toko</option><option value="affiliate">Affiliate Shopee</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
                                                         <label className="block text-sm font-black text-cyan-300 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
                                                             Product Name *
                                                         </label>
@@ -943,6 +981,17 @@ const AdminDashboard = () => {
                                                             required
                                                         />
                                                     </div>
+
+                                                    {formData.productType === 'affiliate' && <>
+                                                        <div>
+                                                            <label className="block text-sm font-black text-cyan-300 mb-2">Platform affiliate</label>
+                                                            <input name="affiliatePlatform" value={formData.affiliatePlatform || 'Shopee'} onChange={handleInputChange} className="input-field" />
+                                                        </div>
+                                                        <div className="md:col-span-2">
+                                                            <label className="block text-sm font-black text-cyan-300 mb-2">Link affiliate (HTTPS) *</label>
+                                                            <input type="url" name="affiliateUrl" value={formData.affiliateUrl || ''} onChange={handleInputChange} className="input-field" placeholder="https://shopee.co.id/..." required />
+                                                        </div>
+                                                    </>}
 
                                                     <div>
                                                         <label className="block text-sm font-black text-cyan-300 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
@@ -1007,11 +1056,11 @@ const AdminDashboard = () => {
                                                 <div className="grid md:grid-cols-2 gap-6 relative z-10">
                                                     <div>
                                                         <label className="block text-sm font-black text-green-300 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                            Price (MMK) *
+                                                            Harga (Rupiah) *
                                                         </label>
                                                         <div className="relative">
                                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-400 font-black" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                                                                K
+                                                                Rp
                                                             </span>
                                                             <input
                                                                 type="number"
@@ -1050,46 +1099,7 @@ const AdminDashboard = () => {
                                                         </div>
                                                     </div>
 
-                                                    {/* Price Preview */}
-                                                    {formData.price && (
-                                                        <div className="md:col-span-2 bg-gray-900/80 p-4 corner-clip-sm border-2 border-green-500/40" style={{ boxShadow: '0 0 15px rgba(0, 255, 0, 0.15)' }}>
-                                                            <p className="text-sm text-green-400 mb-3 uppercase font-black" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Price Preview:</p>
-                                                            {formData.discount > 0 ? (
-                                                                <div className="space-y-1">
-                                                                    {/* MMK — primary (entered directly) */}
-                                                                    <div className="flex items-center gap-3 flex-wrap">
-                                                                        <span className="text-3xl font-black text-green-400" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 15px rgba(0, 255, 0, 0.8)' }}>
-                                                                            K{Math.round(parseFloat(formData.price) * (1 - formData.discount / 100)).toLocaleString('en-US')}
-                                                                        </span>
-                                                                        <span className="text-xl text-gray-500 line-through" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                                                                            K{Math.round(parseFloat(formData.price)).toLocaleString('en-US')}
-                                                                        </span>
-                                                                        <span className="bg-red-500/20 text-red-400 border border-red-500/50 px-3 py-1 corner-clip-sm text-sm font-black" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                                            -{formData.discount}%
-                                                                        </span>
-                                                                    </div>
-                                                                    {/* THB — reference */}
-                                                                    <div className="flex items-center gap-2 text-sm font-bold" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                                        <span className="text-gray-500 uppercase tracking-wide text-xs">THB ref:</span>
-                                                                        <span className="text-gray-400">฿{(parseFloat(formData.price) * (1 - formData.discount / 100) / exchangeRate).toFixed(2)}</span>
-                                                                        <span className="text-gray-600 line-through text-xs">฿{(parseFloat(formData.price) / exchangeRate).toFixed(2)}</span>
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="space-y-1">
-                                                                    {/* MMK — primary (entered directly) */}
-                                                                    <span className="text-3xl font-black text-green-400 block" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 15px rgba(0, 255, 0, 0.8)' }}>
-                                                                        K{Math.round(parseFloat(formData.price)).toLocaleString('en-US')}
-                                                                    </span>
-                                                                    {/* THB — reference */}
-                                                                    <div className="flex items-center gap-2 text-sm font-bold" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                                        <span className="text-gray-500 uppercase tracking-wide text-xs">THB ref:</span>
-                                                                        <span className="text-gray-400">฿{(parseFloat(formData.price) / exchangeRate).toFixed(2)}</span>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                                    {formData.price && <div className="md:col-span-2 p-4 rounded-xl bg-rose-50"><p className="text-sm text-rose-800 font-bold mb-2">Pratinjau harga</p><span>{formatPrice(Number(formData.price) * (1 - Number(formData.discount || 0) / 100))}</span></div>}
                                                 </div>
                                             </div>
 
@@ -1128,7 +1138,7 @@ const AdminDashboard = () => {
                                                 <div className="max-w-md relative z-10">
                                                     <div>
                                                         <label className="block text-sm font-black text-orange-300 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                            Stock Quantity *
+                                                            Stok {formData.productType === 'affiliate' ? '(opsional)' : '*'}
                                                         </label>
                                                         <input
                                                             type="number"
@@ -1139,7 +1149,7 @@ const AdminDashboard = () => {
                                                             style={{ fontFamily: 'Orbitron, sans-serif' }}
                                                             placeholder="0"
                                                             min="0"
-                                                            required
+                                                            required={formData.productType !== 'affiliate'}
                                                         />
                                                         {formData.stock > 0 && (
                                                             <div className="mt-3 p-3 corner-clip-sm bg-gray-900/80 border-2 border-orange-500/30">
@@ -1159,6 +1169,7 @@ const AdminDashboard = () => {
                                                         )}
                                                     </div>
                                                 </div>
+                                                <label className="mt-4 flex items-center gap-2 relative z-10 text-orange-200"><input type="checkbox" name="isActive" checked={formData.isActive !== false} onChange={handleInputChange}/> Produk aktif dan tampil di katalog</label>
                                             </div>
 
                                             {/* Action Buttons */}
@@ -1311,11 +1322,6 @@ const AdminDashboard = () => {
                         )}
 
                         {/* Bank Accounts View */}
-                        {activeTab === 'bank-accounts' && (
-                            <div className="animate-fade-in">
-                                <AdminBankAccounts />
-                            </div>
-                        )}
 
                         {/* Settings View */}
                         {activeTab === 'settings' && (

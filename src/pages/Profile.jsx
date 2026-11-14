@@ -28,7 +28,7 @@ const Profile = () => {
         city: '',
         state: '',
         zipCode: '',
-        country: 'Thailand',
+        country: 'Indonesia',
         photoURL: ''
     });
 
@@ -55,7 +55,7 @@ const Profile = () => {
                     city: userDoc.data().city || '',
                     state: userDoc.data().state || '',
                     zipCode: userDoc.data().zipCode || '',
-                    country: userDoc.data().country || 'Thailand',
+                    country: userDoc.data().country || 'Indonesia',
                     photoURL: userDoc.data().photoURL || ''
                 });
             } else {
@@ -67,7 +67,7 @@ const Profile = () => {
                     city: '',
                     state: '',
                     zipCode: '',
-                    country: 'Thailand',
+                    country: 'Indonesia',
                     photoURL: ''
                 });
             }
@@ -528,7 +528,7 @@ const Profile = () => {
                                                 disabled={!isEditing}
                                                 className={`input-field ${!isEditing ? 'bg-gray-800/30 opacity-60' : ''}`}
                                             >
-                                                <option value="Thailand">Thailand</option>
+                                                <option value="Indonesia">Indonesia</option>
                                                 <option value="USA">United States</option>
                                                 <option value="UK">United Kingdom</option>
                                                 <option value="Singapore">Singapore</option>

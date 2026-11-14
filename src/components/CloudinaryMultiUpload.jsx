@@ -46,11 +46,11 @@ const CloudinaryMultiUpload = ({ images = [], onChange, maxImages = 8 }) => {
                 {
                     cloudName,
                     uploadPreset,
-                    sources: ['local', 'url', 'camera'],
+                    sources: ['local', 'camera'],
                     multiple: true,
                     maxFiles: remaining,
                     maxFileSize: 5000000,
-                    clientAllowedFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+                    clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
                     maxImageWidth: 2000,
                     maxImageHeight: 2000,
                     folder: 'e-commerce/products',
@@ -76,7 +76,7 @@ const CloudinaryMultiUpload = ({ images = [], onChange, maxImages = 8 }) => {
             );
             setUploading(true);
             widget.open();
-        } catch (err) {
+        } catch {
             setError('Failed to open upload widget. Please try again.');
             setUploading(false);
         }

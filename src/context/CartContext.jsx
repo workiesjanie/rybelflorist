@@ -14,7 +14,8 @@ export const CartProvider = ({ children }) => {
     const [cartItems, setCartItems] = useState(() => {
         // Initialize cart from localStorage
         const savedCart = localStorage.getItem("cart");
-        return savedCart ? JSON.parse(savedCart) : [];
+        try { return savedCart ? JSON.parse(savedCart).filter(item => item.productType !== 'affiliate') : []; }
+        catch { return []; }
     });
 
     // Save cart to localStorage whenever it changes
@@ -23,6 +24,7 @@ export const CartProvider = ({ children }) => {
     }, [cartItems]);
 
     const addToCart = (product, quantity = 1) => {
+        if (product.productType === 'affiliate' || product.isActive === false) return;
         setCartItems((prevItems) => {
             const existingItem = prevItems.find((item) => item.id === product.id);
 
@@ -32,7 +34,7 @@ export const CartProvider = ({ children }) => {
                     if (item.id === product.id) {
                         const newQuantity = item.quantity + quantity;
                         // Check if new quantity would exceed stock
-                        if (product.stock && newQuantity > product.stock) {
+                    if (Number.isFinite(product.stock) && newQuantity > product.stock) {
                             // Cap at available stock
                             return { ...item, quantity: product.stock, stock: product.stock };
                         }
@@ -43,7 +45,7 @@ export const CartProvider = ({ children }) => {
             } else {
                 // Add new item to cart
                 // Make sure quantity doesn't exceed stock
-                const safeQuantity = product.stock && quantity > product.stock
+                const safeQuantity = Number.isFinite(product.stock) && quantity > product.stock
                     ? product.stock
                     : quantity;
                 return [...prevItems, { ...product, quantity: safeQuantity }];
@@ -67,7 +69,7 @@ export const CartProvider = ({ children }) => {
             prevItems.map((item) => {
                 if (item.id === productId) {
                     // Check if trying to exceed available stock
-                    if (item.stock && quantity > item.stock) {
+                    if (Number.isFinite(item.stock) && quantity > item.stock) {
                         // Don't allow quantity to exceed stock
                         return { ...item, quantity: item.stock };
                     }
@@ -84,7 +86,7 @@ export const CartProvider = ({ children }) => {
 
     const getCartTotal = () => {
         return cartItems.reduce(
-            (total, item) => total + item.price * item.quantity,
+            (total, item) => total + item.price * (1 - Number(item.discount || 0) / 100) * item.quantity,
             0
         );
     };

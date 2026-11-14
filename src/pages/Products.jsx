@@ -6,10 +6,10 @@ import ProductCard from '../components/ProductCard';
 import FilterSidebar from '../components/FilterSidebar';
 
 const sortOptions = [
-    { value: 'featured', label: 'Featured' },
-    { value: 'price-low', label: 'Price: Low to High' },
-    { value: 'price-high', label: 'Price: High to Low' },
-    { value: 'rating', label: 'Highest Rated' }
+    { value: 'featured', label: 'Unggulan' },
+    { value: 'price-low', label: 'Harga: terendah' },
+    { value: 'price-high', label: 'Harga: tertinggi' },
+    { value: 'rating', label: 'Rating tertinggi' }
 ];
 
 const Products = () => {
@@ -30,8 +30,6 @@ const Products = () => {
 
     // Real-time products listener + one-time ratings fetch
     useEffect(() => {
-        setLoading(true);
-
         // Fetch reviews once (ratings rarely change mid-session)
         const fetchRatings = async (productsData) => {
             try {
@@ -74,11 +72,11 @@ const Products = () => {
     const filteredProducts = allProducts
         .filter(product => {
             // Category filter
-            const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
+            const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory || product.categoryId === selectedCategory;
 
             // Search filter
-            const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                product.description.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesSearch = (product.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (product.description || '').toLowerCase().includes(searchQuery.toLowerCase());
 
             // Price range filter
             const matchesPrice = product.price >= filters.priceRange.min &&
@@ -98,12 +96,12 @@ const Products = () => {
                 filters.brands.includes(product.brand);
 
             // Stock filter
-            const matchesStock = !filters.inStockOnly || product.stock > 0;
+            const matchesStock = !filters.inStockOnly || product.productType === 'affiliate' || product.stock > 0;
 
             // Sale filter
             const matchesSale = !filters.onSaleOnly || product.discount > 0;
 
-            return matchesCategory && matchesSearch && matchesPrice &&
+            return product.isActive !== false && matchesCategory && matchesSearch && matchesPrice &&
                 matchesRating && matchesBrand && matchesStock && matchesSale;
         })
         .sort((a, b) => {
@@ -125,11 +123,11 @@ const Products = () => {
                 {/* Page Header */}
                 <div className="mb-8 md:mb-12 text-center">
                     <h1 className="text-4xl sm:text-5xl md:text-6xl font-black mb-3 md:mb-4 uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                        <span className="text-cyan-400" style={{ textShadow: '0 0 30px rgba(0, 255, 255, 0.8)' }}>Explore Our </span>
-                        <span className="text-gradient" style={{ textShadow: '0 0 30px rgba(255, 0, 255, 0.6)' }}>Collection</span>
+                        <span className="text-cyan-400">Katalog </span>
+                        <span className="text-gradient">Buket Bahagia</span>
                     </h1>
                     <p className="text-base sm:text-lg md:text-xl text-gray-400 font-bold" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                        Discover premium gaming gear and tech
+                        Buket pilihan dan perlengkapan merangkai bunga untuk momen istimewa.
                     </p>
                 </div>
 
@@ -139,7 +137,7 @@ const Products = () => {
                         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-cyan-400 w-5 h-5" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 255, 255, 0.8))' }} />
                         <input
                             type="text"
-                            placeholder="Search for gaming gear..."
+                            placeholder="Cari buket atau perlengkapan..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="input-field pl-12 text-lg"

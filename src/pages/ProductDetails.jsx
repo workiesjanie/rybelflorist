@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { doc, onSnapshot, collection, getDocs, query, where, limit, addDoc, updateDoc, orderBy } from 'firebase/firestore';
+import { doc, onSnapshot, collection, getDocs, query, where, limit, addDoc, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -80,7 +80,7 @@ const ProductDetails = () => {
         if (!product) return;
         const imgs = product.images?.length
             ? product.images
-            : product.image ? [product.image] : [];
+            : product.image ? [product.image] : ['/placeholder-buket.svg'];
         if (imgs.length <= 1) return; // nothing to navigate
 
         const handler = (e) => {
@@ -219,7 +219,7 @@ const ProductDetails = () => {
     };
 
     const handleAddToCart = () => {
-        if (product) {
+        if (product && product.productType !== 'affiliate' && product.isActive !== false) {
             addToCart(product, quantity);
         }
     };
@@ -283,7 +283,7 @@ const ProductDetails = () => {
                                     ? product.images
                                     : product.image
                                         ? [product.image]
-                                        : [];
+                                        : ['/placeholder-buket.svg'];
                                 const safeIdx = Math.min(activeImageIdx, productImages.length - 1);
 
                                 const goNext = (e) => { e.stopPropagation(); setActiveImageIdx(i => Math.min(i + 1, productImages.length - 1)); };
@@ -409,7 +409,7 @@ const ProductDetails = () => {
                             )}
 
                             {/* Price */}
-                            <div className="mb-4 md:mb-6">
+                            {product.productType !== 'affiliate' && <div className="mb-4 md:mb-6">
                                 <div className="flex items-center space-x-3 md:space-x-4">
                                     <span className="text-3xl sm:text-4xl md:text-5xl font-black text-gradient" style={{ textShadow: '0 0 20px rgba(0, 255, 255, 0.5)' }}>
                                         {formatPrice(calculateDiscountedPrice())}
@@ -420,10 +420,10 @@ const ProductDetails = () => {
                                         </span>
                                     )}
                                 </div>
-                            </div>
+                            </div>}
 
                             {/* Stock Status */}
-                            <div className="mb-6">
+                            {product.productType !== 'affiliate' && <div className="mb-6">
                                 {product.stock > 0 ? (
                                     <div className="flex items-center space-x-2">
                                         <div className="w-3 h-3 bg-cyan-400 rounded-full" style={{ boxShadow: '0 0 10px rgba(0, 255, 255, 0.8)' }}></div>
@@ -437,7 +437,7 @@ const ProductDetails = () => {
                                         <span className="text-red-400 font-bold uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif', textShadow: '0 0 10px rgba(255, 0, 0, 0.5)' }}>Out of Stock</span>
                                     </div>
                                 )}
-                            </div>
+                            </div>}
 
                             {/* Description */}
                             <div className="mb-8">
@@ -446,7 +446,7 @@ const ProductDetails = () => {
                             </div>
 
                             {/* Quantity Selector */}
-                            {product.stock > 0 && (
+                            {product.productType !== 'affiliate' && product.stock > 0 && (
                                 <div className="mb-6">
                                     <label className="block text-sm font-black mb-3 text-cyan-400 uppercase tracking-wide" style={{ fontFamily: 'Orbitron, sans-serif' }}>Quantity</label>
                                     <div className="flex items-center space-x-4">
@@ -468,14 +468,14 @@ const ProductDetails = () => {
                             )}
 
                             {/* Add to Cart Button */}
-                            <button
+                            {product.productType === 'affiliate' ? <div className="space-y-3"><span className="inline-block rounded-full bg-orange-100 text-orange-800 px-3 py-1 font-semibold">Affiliate Shopee</span><p className="text-sm">Tautan affiliate — kami dapat menerima komisi tanpa biaya tambahan untuk Anda.</p><a href={product.affiliateUrl} target="_blank" rel="noopener noreferrer" className="btn-primary w-full inline-flex items-center justify-center">Lihat di Shopee</a></div> : <button
                                 onClick={handleAddToCart}
                                 disabled={product.stock === 0}
                                 className="btn-primary w-full inline-flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed mb-6"
                             >
                                 <ShoppingCart className="w-5 h-5" />
                                 <span>{product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}</span>
-                            </button>
+                            </button>}
 
 
                         </div>
@@ -661,7 +661,7 @@ const ProductDetails = () => {
             {lightboxOpen && (() => {
                 const productImages = product?.images?.length
                     ? product.images
-                    : product?.image ? [product.image] : [];
+                    : product?.image ? [product.image] : ['/placeholder-buket.svg'];
                 const safeLbIdx = Math.min(lightboxIdx, productImages.length - 1);
                 const lbNext = () => setLightboxIdx(Math.min(safeLbIdx + 1, productImages.length - 1));
                 const lbPrev = () => setLightboxIdx(Math.max(safeLbIdx - 1, 0));

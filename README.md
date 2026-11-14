@@ -1,223 +1,82 @@
-# ⚡ Techno World — Thailand's Premium Tech Store
+# Buket Bahagia
 
-![Techno World Banner](./public/Techno%20World.png)
+Aplikasi katalog dan pemesanan toko buket berbasis React, Vite, Firebase Authentication, Firestore, dan Cloudinary. Produk toko dibeli lewat keranjang dan checkout WhatsApp/manual. Produk affiliate Shopee hanya menaut ke Shopee dan tidak dapat dibeli melalui keranjang toko.
 
-A full-featured cyberpunk-themed e-commerce web application built with **React**, **Vite**, and **Firebase**. Features a real-time admin dashboard, bank transfer payment verification, secure role-based authentication, Cloudinary image uploads, and a complete order management system.
+## Menjalankan secara lokal
 
----
+1. Gunakan Node.js 18 atau lebih baru.
+2. Pasang dependensi dengan `npm install`.
+3. Salin `.env.example` menjadi `.env` dan isi variabel yang diperlukan (lihat bagian konfigurasi).
+4. Jalankan `npm run dev`, lalu buka URL lokal yang ditampilkan Vite.
+5. Sebelum mempublikasikan perubahan, jalankan `npm run lint` dan `npm run build`.
 
-## 📸 Screenshots
+Jangan commit `.env`. Variabel `VITE_*` ditanam ke bundle browser; Firebase Web API key dan Cloudinary cloud name/upload preset memang identifier publik, bukan secret. Jangan pernah menaruh Cloudinary API Secret, Stripe key, atau kredensial privat apa pun ke frontend.
 
-### 🛍️ Customer Pages
+## Konfigurasi Firebase
 
-| Home Page | Product Page |
-|---|---|
-| ![Home](./public/TechnoWorld/Home%20Page.jpeg) | ![Products](./public/TechnoWorld/Product%20Page.jpeg) |
+1. Buat/pilih proyek Firebase dan aplikasi Web pada Firebase Console.
+2. Aktifkan **Authentication > Email/Password**.
+3. Buat database **Cloud Firestore**. Isi variabel `VITE_FIREBASE_*` dari konfigurasi aplikasi Web Firebase.
+4. Buat akun lewat halaman `/login` (atau gunakan akun yang sudah tersedia).
+5. Untuk admin pertama, setelah akun terdaftar, buka Firebase Console > Firestore > `users` > dokumen dengan UID akun itu. Ubah `isAdmin` menjadi boolean `true` melalui Console tepercaya. Setelah masuk ulang, akun dapat membuka `/admin/dashboard`.
+6. Terapkan `firestore.rules` setelah memeriksa perubahan dengan Firebase Rules Playground/Emulator. Instruksi deployment ada di bagian **Deploy Rules**.
 
-| Product Detail | Cart |
-|---|---|
-| ![Product Detail](./public/TechnoWorld/Product%20Detail%20Page.jpeg) | ![Cart](./public/TechnoWorld/Cart%20Page.jpeg) |
+Rules membatasi perubahan profil milik sendiri agar pengguna tidak bisa mengubah `isAdmin`. Akses admin bergantung pada dokumen `users/{uid}` yang memiliki `isAdmin: true`.
 
-| Orders | Profile |
-|---|---|
-| ![Orders](./public/TechnoWorld/Order%20Page.jpeg) | ![Profile](./public/TechnoWorld/Profile%20Page.jpeg) |
+## Konfigurasi Cloudinary
 
----
+1. Di Cloudinary Console, catat **Cloud name**.
+2. Buat upload preset bertipe **Unsigned** khusus untuk gambar produk. Batasi preset ke folder `e-commerce/products`, tipe resource `image`, format `jpg,jpeg,png,webp`, ukuran maksimum 5 MB, dan dimensi maksimum yang sesuai (widget membatasi 2000 × 2000). Batasi preset hanya untuk kebutuhan upload katalog dan jangan berikan hak hapus aset melalui preset.
+3. Isi `VITE_CLOUDINARY_CLOUD_NAME` dan `VITE_CLOUDINARY_UPLOAD_PRESET`, lalu mulai ulang dev server.
 
-### 🛡️ Admin Panel
+Foto dapat diganti atau dihapus dari daftar foto produk di form admin. Menghapus foto dari form menghapus referensinya dari dokumen produk; file lama di Cloudinary tidak dihapus otomatis. Jika toko belum memiliki foto asli, UI memakai `public/placeholder-buket.svg`, sebuah placeholder netral yang perlu diganti dengan foto toko sendiri.
 
-| Dashboard | Products |
-|---|---|
-| ![Admin Dashboard](./public/TechnoWorld/Admin%20Dashboard.jpeg) | ![Admin Products](./public/TechnoWorld/Admin%20Products.jpeg) |
+## Nomor WhatsApp toko
 
-| Orders | Customers |
-|---|---|
-| ![Admin Orders](./public/TechnoWorld/Admin%20Orders%20Page.jpeg) | ![Admin Customers](./public/TechnoWorld/Admin%20Customers%20Page.jpeg) |
+Isi `VITE_STORE_WHATSAPP_NUMBER` dengan nomor WhatsApp internasional berupa angka saja, tanpa tanda `+`, spasi, atau tanda baca. Contoh format: `6281234567890`. Setelah mengubah `.env`, mulai ulang Vite. Checkout akan menolak pembuatan order jika nomor belum diisi atau formatnya tidak valid.
 
-| Categories | Bank Accounts |
-|---|---|
-| ![Admin Categories](./public/TechnoWorld/Admin%20Category%20Page.jpeg) | ![Admin Bank Accounts](./public/TechnoWorld/Admin%20Bank%20Account%20Page.jpeg) |
+## Kategori dan contoh katalog
 
-| Settings |
-|---|
-| ![Admin Settings](./public/TechnoWorld/Admin%20Settings.jpeg) |
+Tidak ada data demo yang otomatis ditulis ke Firestore. Masuk sebagai admin, buka **Admin > Categories**, lalu pilih **Tambahkan 5 kategori awal**. Aksi ini hanya berjalan setelah admin menekan tombol dan tidak menulis ke produksi dengan sendirinya. Kategori yang tersedia: Buket Wisuda, Buket Ulang Tahun, Buket Romantis, Buket Artificial, dan Perlengkapan Buket. Kategori tetap dapat dibuat, diedit, dan dihapus dari layar yang sama.
 
----
+Contoh produk untuk dimasukkan manual lewat **Admin > Products** setelah kategori tersedia:
 
-## ✨ Features
+| Tipe | Nama contoh | Kategori | Contoh harga/stok atau link |
+|---|---|---|---|
+| Toko | Buket Wisuda Pastel | Buket Wisuda | Rp185.000, stok 8 |
+| Toko | Buket Ulang Tahun Ceria | Buket Ulang Tahun | Rp225.000, stok 5 |
+| Toko | Buket Mawar untukmu | Buket Romantis | Rp275.000, stok 4 |
+| Toko | Buket Tulip Artificial | Buket Artificial | Rp160.000, stok 10 |
+| Affiliate | Kertas Buket Motif Pastel | Perlengkapan Buket | URL produk HTTPS milik program affiliate Shopee toko |
 
-### 🛍️ Customer-Facing
-- **Product Browsing** — Filter by category, price range, and star rating via a dynamic sidebar
-- **Product Details** — Multi-image gallery with lightbox viewer, stock status, reviews & ratings
-- **Smart Cart** — Add/remove items, adjust quantities, real-time totals
-- **Bank Transfer Checkout** — Upload payment slip; admin verifies before order is confirmed
-- **Real-time Order Tracking** — Status updates live (Pending → Processing → Shipped → Delivered)
-- **Order Success Page** — Reflects payment confirmation in real-time without refresh
-- **User Profile** — Manage personal info and shipping address (auto-filled at checkout)
-- **Reviews & Ratings** — Leave and view product reviews
-- **Wishlist** — Save products for later
-- **Authentication** — Email/password and Google sign-in via Firebase Auth
+Contoh tersebut hanya referensi pengisian, bukan seed data. Gunakan harga, stok, foto, dan tautan affiliate sungguhan milik toko. Produk toko membutuhkan harga positif dan stok bilangan bulat nol atau lebih. Produk affiliate memerlukan URL HTTPS yang valid, platform Shopee, dan tidak dapat masuk keranjang. Status aktif mengatur apakah produk tampil di katalog.
 
-### 🛡️ Admin Dashboard
-- **Overview Dashboard** — Live stats: total sales, orders, products, and real-time activity feed
-- **Product Management** — Full CRUD with multi-image Cloudinary uploads, category assignment, real-time stock updates
-- **Order Management** — Confirm or reject bank transfer payments; stock only deducted on confirmation
-- **Customer Management** — View all users, order counts, and total spend (excludes cancelled/rejected orders)
-- **Category Management** — Create, edit, and delete product categories
-- **Bank Account Management** — Manage payment accounts shown to customers at checkout
-- **Settings & Access Control** — Grant or revoke admin access per user; update shipping fee settings
-- **Activity Log** — Real-time feed of all admin actions with admin identity (name + avatar)
-- **Separate Admin Login** — Admins and customers use completely separate login flows
+## Alur pesanan
 
----
+Checkout tersedia bagi pelanggan yang login. Data order dengan status `pending`, snapshot produk/harga/kuantitas, subtotal, ongkir sementara nol, total sementara, data penerimaan, catatan, kartu ucapan, dan waktu pembuatan ditulis ke Firestore. Setelah penulisan berhasil, aplikasi membuka WhatsApp dengan ringkasan pesanan. Ongkir dan ketersediaan dikonfirmasi manual oleh admin. Pembuatan order pelanggan tidak pernah mengubah stok.
 
-## 🛠️ Tech Stack
+Saat admin mengubah `pending` menjadi `confirmed`, browser admin memakai transaksi Firestore untuk membaca stok terbaru, menolak jika stok kurang, mengurangi stok dan mengubah status order dalam satu transaksi. Firestore Rules membatasi operasi itu ke admin dan Firestore menjaga transaksi atomik, termasuk terhadap konfirmasi bersamaan. Admin tetap harus memeriksa harga, tanggal, stok fisik, dan ongkir sebelum konfirmasi. Operasi lain (misalnya membatalkan order setelah dikonfirmasi) tidak mengembalikan stok otomatis; lakukan koreksi inventori manual dari produk hanya setelah memeriksa kondisi fisik.
 
-| Technology | Purpose |
-|---|---|
-| React 18 + Vite | UI framework & build tool |
-| Tailwind CSS | Utility-first styling |
-| Lucide React | Icon library |
-| React Context API | Auth, Cart, Wishlist global state |
-| React Router DOM | Client-side routing |
-| Firebase Auth | Authentication |
-| Firebase Firestore | Real-time database |
-| Cloudinary | Product image hosting & uploads |
+Status pesanan: `pending`, `confirmed`, `processing`, `shipped`, `delivered`, `completed`, `cancelled`.
 
----
+## Deploy Rules secara manual
 
-## ⚙️ Installation & Setup
+Deployment tidak dijalankan oleh repository ini. Untuk menerapkan rules setelah review:
 
-### Prerequisites
-- Node.js v18+
-- A [Firebase](https://firebase.google.com/) project with **Authentication** and **Firestore** enabled
-- A [Cloudinary](https://cloudinary.com/) account with an unsigned upload preset
+1. Pastikan Firebase CLI terpasang dan Anda memilih project Firebase yang benar (`firebase use <project-id>`).
+2. Bandingkan `firestore.rules` dengan Rules yang sedang aktif dan uji akses customer/admin menggunakan Emulator atau Rules Playground.
+3. Deploy hanya rules dengan `firebase deploy --only firestore:rules` setelah Anda menyetujui dan menjalankan perintah sendiri.
+4. Uji katalog publik, pembuatan order milik pengguna login, pembacaan order sendiri, serta penolakan update order/stok oleh customer. Uji juga create/update produk, kategori, settings dan status order oleh admin.
 
----
+Jangan deploy rules sebelum memastikan setidaknya satu akun admin yang sah masih dapat masuk. Rules tidak mengizinkan customer mengubah status atau menghapus order, dan hanya admin boleh mengubah stok, produk, kategori, settings, atau data admin.
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/kweephyo-pmt/e-commerce.git
-cd e-commerce
-```
+## Sebelum Produksi
 
----
-
-### 2. Install Dependencies
-```bash
-npm install
-```
-
----
-
-### 3. Configure Environment Variables
-
-Create a `.env` file in the **root** directory:
-
-```env
-# Firebase
-VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
-
-# Cloudinary
-VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name
-VITE_CLOUDINARY_UPLOAD_PRESET=your_unsigned_upload_preset
-```
-
-> **Tip:** Copy `.env.example` and fill in your values.
-
----
-
-### 4. Start the Development Server
-```bash
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
----
-
-## 📂 Project Structure
-
-```
-├── src/
-│   ├── components/         # Reusable UI (Navbar, Toast, FilterSidebar, CloudinaryUpload, etc.)
-│   ├── context/            # Global state (AuthContext, CartContext, WishlistContext)
-│   ├── pages/              # All pages
-│   │   ├── Home.jsx
-│   │   ├── Products.jsx
-│   │   ├── ProductDetails.jsx
-│   │   ├── Cart.jsx
-│   │   ├── Checkout.jsx
-│   │   ├── OrderSuccess.jsx
-│   │   ├── Orders.jsx
-│   │   ├── Profile.jsx
-│   │   ├── Wishlist.jsx
-│   │   ├── Login.jsx
-│   │   ├── AdminLogin.jsx
-│   │   ├── AdminDashboard.jsx      # Main admin shell + sidebar
-│   │   ├── AdminOrders.jsx
-│   │   ├── AdminCustomers.jsx
-│   │   ├── AdminCategories.jsx
-│   │   ├── AdminBankAccounts.jsx
-│   │   └── AdminSettings.jsx
-│   ├── utils/
-│   │   └── logActivity.js          # Shared activity logging utility
-│   ├── config/
-│   │   └── firebase.js             # Firebase initialization
-│   └── App.jsx
-├── firestore.rules                 # Firestore security rules
-├── vercel.json                     # Vercel deployment config
-└── public/
-    ├── favicon.png
-    ├── Techno World.png            # OG share image
-    └── TechnoWorld/                # App screenshots
-```
-
----
-
-## 🔒 Security
-
-### Firestore Rules Summary
-| Collection | Read | Write |
-|---|---|---|
-| `users` | Authenticated users | Own doc or admin |
-| `products` | Public | Admin (create/delete/update) |
-| `orders` | Own orders or admin | Own orders (create); admin (update/delete) |
-| `reviews` | Public | Authenticated (create); own or admin (update/delete) |
-| `categories` | Public | Admin only |
-| `carts` | Own cart | Own cart |
-| `activityLogs` | Admin only | Authenticated users (create); admin (update/delete) |
-| `settings` | Public (read) | Admin only |
-
-### Auth Flow
-- **Customers** log in via `/login` — admin accounts are blocked here
-- **Admins** log in via `/admin` — redirected to `/admin/dashboard`
-- Regular users attempting to access `/admin/dashboard` are redirected to `/`
-
-### Payment Flow
-- Customer uploads bank transfer slip at checkout (stored via Cloudinary)
-- Stock is **not** deducted until admin confirms payment
-- Admin confirms → stock decremented, order moves to Processing
-- Admin rejects → order cancelled, stock untouched
-
----
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-The project includes a `vercel.json` for SPA routing. Deploy in one command:
-```bash
-vercel --prod
-```
-Or connect the GitHub repo directly in the [Vercel dashboard](https://vercel.com/dashboard) and add your `.env` variables under **Project → Settings → Environment Variables**.
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](./LICENSE).
+- Checkout adalah pemesanan manual, bukan bukti pembayaran otomatis. Harga, ketersediaan, tanggal pemenuhan, ongkir, dan metode pembayaran harus dikonfirmasi admin melalui WhatsApp.
+- Stok baru dikurangi pada transisi admin `pending` → `confirmed`; admin perlu memeriksa pesanan dan inventaris fisik. Stok tidak otomatis dikembalikan jika order terkonfirmasi kemudian dibatalkan.
+- Deploy dan uji Firestore Rules dengan project yang benar sebelum menerima pesanan. Aturan lokal yang belum dideploy tidak melindungi database aktif.
+- Tautan affiliate harus milik program Shopee toko. Disclosure ditampilkan pada kartu/detail: “Tautan affiliate — kami dapat menerima komisi tanpa biaya tambahan untuk Anda.” Pastikan wording sesuai ketentuan program yang digunakan.
+- Tambahkan kebijakan privasi yang menjelaskan pemrosesan nama, nomor WhatsApp, alamat, catatan pesanan, data Firebase, dan pembagian data ketika pembeli diarahkan ke WhatsApp. Teks halaman privasi bawaan perlu ditinjau untuk kebijakan usaha dan wilayah toko.
+- Isi nomor WhatsApp toko dan ganti placeholder foto dengan foto produk milik sendiri.
+- Konfigurasi environment yang sama pada hosting, tinjau domain Firebase Auth, Cloudinary preset, monitoring, backup, dan rencana operasional admin sebelum deploy Vercel.
+- Tidak ada deployment Firebase, Cloudinary, atau Vercel yang dilakukan dalam implementasi ini.

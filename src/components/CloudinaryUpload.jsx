@@ -27,10 +27,10 @@ const CloudinaryUpload = ({ onUploadSuccess, currentImage }) => {
                 {
                     cloudName,
                     uploadPreset,
-                    sources: ['local', 'url', 'camera'],
+                    sources: ['local', 'camera'],
                     multiple: false,
                     maxFileSize: 5000000,
-                    clientAllowedFormats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+                    clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
                     maxImageWidth: 2000,
                     maxImageHeight: 2000,
                     cropping: true,
@@ -60,7 +60,7 @@ const CloudinaryUpload = ({ onUploadSuccess, currentImage }) => {
             );
             setUploading(true);
             widget.open();
-        } catch (err) {
+        } catch {
             setError('Failed to open upload widget. Please try again.');
             setUploading(false);
         }

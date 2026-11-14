@@ -12,11 +12,8 @@ const AdminCustomers = () => {
     const { formatPrice } = useCurrency();
 
     // Short-form formatter for stat cards (avoids overflow)
-    const formatShort = (mmk) => {
-        if (mmk >= 1_000_000_000) return `K${(mmk / 1_000_000_000).toFixed(1)}B`;
-        if (mmk >= 1_000_000) return `K${(mmk / 1_000_000).toFixed(1)}M`;
-        if (mmk >= 1_000) return `K${(mmk / 1_000).toFixed(1)}K`;
-        return `K${Math.round(mmk).toLocaleString('en-US')}`;
+    const formatShort = (rupiah) => {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', notation: 'compact', maximumFractionDigits: 1 }).format(rupiah);
     };
 
     useEffect(() => {

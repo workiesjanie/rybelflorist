@@ -108,6 +108,27 @@ const AdminCategories = () => {
         }
     };
 
+    const addStarterCategories = async () => {
+        const starters = [
+            ['Buket Wisuda', 'Rangkaian spesial untuk merayakan kelulusan.'],
+            ['Buket Ulang Tahun', 'Hadiah bunga untuk hari ulang tahun.'],
+            ['Buket Romantis', 'Buket untuk menyampaikan kasih dan perhatian.'],
+            ['Buket Artificial', 'Buket bunga artificial yang tahan lama.'],
+            ['Perlengkapan Buket', 'Kertas, pita, dan perlengkapan merangkai buket.'],
+        ];
+        try {
+            const existing = new Set(categories.map(category => category.name.toLowerCase()));
+            for (const [name, description] of starters) {
+                if (!existing.has(name.toLowerCase())) await addDoc(collection(db, 'categories'), { name, description, color: '#d98696', createdAt: serverTimestamp() });
+            }
+            showToast('Kategori awal berhasil ditambahkan.');
+            fetchCategories();
+        } catch (error) {
+            console.error('Error adding starter categories:', error);
+            showToast('Gagal menambah kategori. Pastikan sesi admin aktif.', 'error');
+        }
+    };
+
     const startEdit = (cat) => {
         setEditingCategory(cat);
         setFormData({ name: cat.name, description: cat.description || '', color: cat.color || '#00ffff' });
@@ -221,6 +242,8 @@ const AdminCategories = () => {
                             </p>
                         </div>
                     </div>
+                    <div className="flex flex-wrap gap-2">
+                    {['Buket Wisuda','Buket Ulang Tahun','Buket Romantis','Buket Artificial','Perlengkapan Buket'].some(name => !categories.some(category => category.name === name)) && <button onClick={addStarterCategories} className="px-4 py-2 rounded-full bg-rose-100 text-rose-900">Tambahkan 5 kategori awal</button>}
                     <button
                         onClick={() => { resetForm(); setShowForm(true); }}
                         className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white font-black uppercase tracking-wide corner-clip-sm border-2 border-orange-400 transition-all"
@@ -228,7 +251,7 @@ const AdminCategories = () => {
                     >
                         <Plus className="w-5 h-5" />
                         <span>New Category</span>
-                    </button>
+                    </button></div>
                 </div>
             </div>
 
@@ -269,7 +292,7 @@ const AdminCategories = () => {
                                     onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
                                     className="w-full px-4 py-3 bg-gray-800 border-2 border-orange-500/40 corner-clip-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-400 transition-all font-bold"
                                     style={{ fontFamily: 'Rajdhani, sans-serif', boxShadow: '0 0 10px rgba(249,115,22,0.1)' }}
-                                    placeholder="e.g. Electronics, Clothing..."
+                                    placeholder="Contoh: Buket Wisuda, Perlengkapan Buket..."
                                     required
                                 />
                             </div>
