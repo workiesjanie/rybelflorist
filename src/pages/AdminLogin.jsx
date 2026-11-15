@@ -15,9 +15,8 @@ const AdminLogin = () => {
     const { user, isAdmin, loading: authLoading } = useAuth();
     const navigate = useNavigate();
 
-    // specific redirect logic
     useEffect(() => {
-        if (authLoading) return; // Wait for auth check
+        if (authLoading) return;
 
         if (user) {
             if (isAdmin) {
@@ -30,8 +29,8 @@ const AdminLogin = () => {
 
     if (authLoading) {
         return (
-            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+            <div className="min-h-screen bg-cream flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-dusty-rose"></div>
             </div>
         );
     }
@@ -42,15 +41,12 @@ const AdminLogin = () => {
         setLoading(true);
 
         try {
-            // Use Firebase auth directly to bypass customer login restrictions
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
-
-            // Check if user is admin
             const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
 
             if (!userDoc.exists()) {
-                setError('User account not found. Please contact support.');
-                await auth.signOut(); // Sign out if not found
+                setError('Akun tidak ditemukan. Silakan hubungi support.');
+                await auth.signOut();
                 setLoading(false);
                 return;
             }
@@ -58,99 +54,83 @@ const AdminLogin = () => {
             const userData = userDoc.data();
 
             if (userData.isAdmin !== true) {
-                setError('Access denied. This account does not have admin privileges.');
-                await auth.signOut(); // Sign out if not admin
+                setError('Akses ditolak. Akun ini tidak memiliki hak akses admin.');
+                await auth.signOut();
                 setLoading(false);
                 return;
             }
-
-            // User is admin, will be redirected by useEffect
-        } catch (error) {
-            if (error.code === 'auth/invalid-credential') {
-                setError('Invalid email or password. Please check your credentials and try again.');
-            } else if (error.code === 'auth/user-not-found') {
-                setError('No account found with this email address.');
-            } else if (error.code === 'auth/wrong-password') {
-                setError('Incorrect password. Please try again.');
-            } else if (error.code === 'auth/too-many-requests') {
-                setError('Too many failed attempts. Please try again later.');
+        } catch (err) {
+            if (err.code === 'auth/invalid-credential') {
+                setError('Email atau kata sandi salah. Silakan periksa kembali.');
+            } else if (err.code === 'auth/user-not-found') {
+                setError('Tidak ada akun terdaftar dengan email ini.');
+            } else if (err.code === 'auth/wrong-password') {
+                setError('Kata sandi salah. Silakan coba lagi.');
+            } else if (err.code === 'auth/too-many-requests') {
+                setError('Terlalu banyak percobaan gagal. Silakan coba lagi nanti.');
             } else {
-                setError(error.message || 'An error occurred. Please try again.');
+                setError(err.message || 'Terjadi kesalahan saat masuk.');
             }
-            console.error('Admin login error:', error);
+            console.error('Admin login error:', err);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#0a0e27] via-[#0f172a] to-[#1a1f3a] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-            {/* Animated background effects */}
-            <div className="absolute inset-0 opacity-10">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-magenta-500 rounded-full filter blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500 rounded-full filter blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-            </div>
-
+        <div className="min-h-screen bg-cream flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
             <div className="max-w-md w-full relative z-10">
-                <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl p-8 sm:p-10 animate-fade-in border-2 border-magenta-500/30 corner-clip relative overflow-hidden" style={{ boxShadow: '0 0 60px rgba(255, 0, 255, 0.4), inset 0 0 40px rgba(255, 0, 255, 0.05)' }}>
-                    {/* Background scan lines */}
-                    <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 0, 255, 0.1) 2px, rgba(255, 0, 255, 0.1) 4px)' }}></div>
-
+                <div className="bg-white p-8 sm:p-10 animate-fade-in border border-soft-brown/15 rounded-3xl shadow-lg relative overflow-hidden">
                     {/* Header */}
                     <div className="text-center mb-8 relative z-10">
-                        <div className="inline-flex items-center justify-center w-24 h-24 border-2 border-magenta-500/50 corner-clip mb-6 relative" style={{ boxShadow: '0 0 40px rgba(255, 0, 255, 0.2)' }}>
-                            <Shield className="w-12 h-12 text-magenta-400" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 0, 255, 0.5))' }} />
-                            {/* Pulsing ring */}
-                            <div className="absolute inset-0 corner-clip border-2 border-magenta-400/50 animate-ping"></div>
+                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-dusty-rose/10 border border-dusty-rose/20 mb-4">
+                            <Shield className="w-10 h-10 text-dusty-rose" />
                         </div>
-                        <h2 className="text-3xl sm:text-4xl font-black text-magenta-400 mb-2 uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 20px rgba(255, 0, 255, 1), 0 0 40px rgba(255, 0, 255, 0.6)' }}>
-                            Admin Access
+                        <h2 className="text-2xl sm:text-3xl font-extrabold text-charcoal mb-1">
+                            Admin rybelflorist
                         </h2>
-                        <p className="text-cyan-300 font-bold uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif', textShadow: '0 0 10px rgba(0, 255, 255, 0.5)' }}>
-                            Authorized Personnel Only
+                        <p className="text-charcoal/60 text-sm font-medium">
+                            Masuk untuk mengelola produk & pesanan
                         </p>
                     </div>
 
                     {/* Error Message */}
                     {error && (
-                        <div className="mb-6 p-4 bg-red-500/10 border-2 border-red-500/50 corner-clip-sm text-red-400 text-sm animate-fade-in relative overflow-hidden" style={{ boxShadow: '0 0 20px rgba(255, 0, 0, 0.3)' }}>
-                            <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-transparent"></div>
-                            <p className="relative z-10 font-bold" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{error}</p>
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm animate-fade-in font-medium">
+                            {error}
                         </div>
                     )}
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+                    <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
                         <div>
-                            <label className="block text-sm font-black text-cyan-400 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif', textShadow: '0 0 10px rgba(0, 255, 255, 0.5)' }}>
-                                Admin Email
+                            <label className="block text-xs font-bold text-charcoal mb-1.5 uppercase tracking-wider">
+                                Email Admin
                             </label>
                             <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cyan-400 w-5 h-5" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 255, 255, 0.8))' }} />
+                                <Mail className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-soft-brown w-5 h-5" />
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-gray-900/80 border-2 border-cyan-500/50 corner-clip-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400 transition-all duration-200 font-bold"
-                                    style={{ fontFamily: 'Rajdhani, sans-serif', boxShadow: '0 0 15px rgba(0, 255, 255, 0.2), inset 0 0 10px rgba(0, 255, 255, 0.05)' }}
-                                    placeholder="admin@gamezone.com"
+                                    className="w-full pl-11 pr-4 py-3 bg-cream border border-soft-brown/20 rounded-xl text-charcoal placeholder-charcoal/40 focus:outline-none focus:border-dusty-rose focus:ring-2 focus:ring-dusty-rose/20 transition-all text-sm font-medium"
+                                    placeholder="admin@rybelflorist.com"
                                     required
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-black text-cyan-400 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif', textShadow: '0 0 10px rgba(0, 255, 255, 0.5)' }}>
-                                Password
+                            <label className="block text-xs font-bold text-charcoal mb-1.5 uppercase tracking-wider">
+                                Kata Sandi
                             </label>
                             <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cyan-400 w-5 h-5" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 255, 255, 0.8))' }} />
+                                <Lock className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-soft-brown w-5 h-5" />
                                 <input
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-gray-900/80 border-2 border-cyan-500/50 corner-clip-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400 transition-all duration-200 font-bold"
-                                    style={{ fontFamily: 'Rajdhani, sans-serif', boxShadow: '0 0 15px rgba(0, 255, 255, 0.2), inset 0 0 10px rgba(0, 255, 255, 0.05)' }}
+                                    className="w-full pl-11 pr-4 py-3 bg-cream border border-soft-brown/20 rounded-xl text-charcoal placeholder-charcoal/40 focus:outline-none focus:border-dusty-rose focus:ring-2 focus:ring-dusty-rose/20 transition-all text-sm font-medium"
                                     placeholder="••••••••"
                                     required
                                 />
@@ -160,37 +140,20 @@ const AdminLogin = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-magenta-600 to-purple-600 hover:from-magenta-500 hover:to-purple-500 text-white font-black py-3 px-6 corner-clip-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider relative overflow-hidden group"
-                            style={{ fontFamily: 'Orbitron, sans-serif', boxShadow: '0 0 30px rgba(255, 0, 255, 0.5)' }}
+                            className="btn-primary w-full py-3.5 text-center text-sm font-semibold rounded-xl"
                         >
-                            <span className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                            <span className="relative z-10">{loading ? 'Authenticating...' : 'Enter Admin Zone'}</span>
+                            {loading ? 'Memverifikasi...' : 'Masuk ke Dashboard'}
                         </button>
                     </form>
 
-                    {/* Info Box */}
-                    <div className="mt-6 p-4 bg-gradient-to-r from-magenta-500/10 to-purple-500/10 border-2 border-magenta-500/30 corner-clip-sm relative overflow-hidden" style={{ boxShadow: '0 0 20px rgba(255, 0, 255, 0.2)' }}>
-                        <div className="absolute inset-0 bg-gradient-to-r from-magenta-500/5 to-transparent"></div>
-                        <div className="flex items-start space-x-3 relative z-10">
-                            <Shield className="w-5 h-5 text-magenta-400 mt-0.5 flex-shrink-0" style={{ filter: 'drop-shadow(0 0 5px rgba(255, 0, 255, 0.8))' }} />
-                            <div className="text-sm">
-                                <p className="font-black mb-1 text-magenta-400 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Security Clearance Required</p>
-                                <p className="text-gray-300 font-bold" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                    Only authorized administrators can access this restricted area. Your account must have admin privileges.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Back to Home */}
-                    <div className="text-center mt-6 relative z-10">
+                    <div className="text-center mt-6 relative z-10 pt-4 border-t border-soft-brown/10">
                         <Link
                             to="/"
-                            className="inline-flex items-center space-x-2 text-cyan-300 hover:text-cyan-400 font-bold uppercase tracking-wide transition-all duration-200 p-3 corner-clip-sm hover:bg-cyan-500/10 border-2 border-transparent hover:border-cyan-500/30"
-                            style={{ fontFamily: 'Rajdhani, sans-serif', textShadow: '0 0 10px rgba(0, 255, 255, 0.3)' }}
+                            className="inline-flex items-center space-x-2 text-sm text-soft-brown hover:text-charcoal font-semibold transition-colors"
                         >
-                            <ArrowLeft className="w-4 h-4" style={{ filter: 'drop-shadow(0 0 3px rgba(0, 255, 255, 0.8))' }} />
-                            <span>Back to Store</span>
+                            <ArrowLeft className="w-4 h-4" />
+                            <span>Kembali ke Beranda</span>
                         </Link>
                     </div>
                 </div>

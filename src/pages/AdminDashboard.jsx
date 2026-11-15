@@ -5,18 +5,15 @@ import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { logActivity } from '../utils/logActivity';
-import CloudinaryUpload from '../components/CloudinaryUpload';
 import CloudinaryMultiUpload from '../components/CloudinaryMultiUpload';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import AdminOrders from './AdminOrders';
-import AdminCustomers from './AdminCustomers';
 import AdminSettings from './AdminSettings';
 import AdminCategories from './AdminCategories';
 import {
     LayoutDashboard,
     Package,
     ShoppingCart,
-    Users,
     Settings,
     LogOut,
     Plus,
@@ -40,12 +37,10 @@ const isValidAffiliateUrl = (value) => {
     try { return new URL(value).protocol === 'https:'; } catch { return false; }
 };
 
-
 const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState(() => {
-        // Initialize from localStorage or default to 'dashboard'
         const savedTab = localStorage.getItem('adminActiveTab');
-        return ['dashboard', 'products', 'categories', 'orders', 'customers', 'settings'].includes(savedTab) ? savedTab : 'dashboard';
+        return ['dashboard', 'products', 'categories', 'orders', 'settings'].includes(savedTab) ? savedTab : 'dashboard';
     });
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -67,8 +62,8 @@ const AdminDashboard = () => {
         description: '',
         price: '',
         discount: '',
-        images: [],   // array of URLs
-        image: '',    // kept for backward compat — always = images[0]
+        images: [],
+        image: '',
         category: '',
         rating: '',
         reviews: '',
@@ -87,17 +82,15 @@ const AdminDashboard = () => {
     const { formatPrice } = useCurrency();
     const navigate = useNavigate();
 
-    // Save active tab to localStorage whenever it changes
     useEffect(() => {
         localStorage.setItem('adminActiveTab', activeTab);
     }, [activeTab]);
 
-    // Toast notification helper
     const showToast = (message, type = 'success', action = null) => {
         setToast({ show: true, message, type, action });
         setTimeout(() => {
             setToast({ show: false, message: '', type: '', action: null });
-        }, 10000); // For order alerts, keep it longer (10s)
+        }, 10000);
     };
 
     // Real-time Order Listener for Notifications
@@ -111,21 +104,20 @@ const AdminDashboard = () => {
                     const order = change.doc.data();
                     const orderTime = order.createdAt?.toDate()?.getTime() || Date.now();
 
-                    // Only notify if order is newer than dashboard load time
                     if (orderTime > dashboardStartTime) {
                         notificationSound.play().catch(e => console.log('Audio play blocked:', e));
 
                         if (typeof Notification !== 'undefined' && document.visibilityState === 'hidden' && Notification.permission === 'granted') {
-                            new Notification('New Order Received!', {
-                                body: `${order.userName} placed an order for ${formatPrice(order.total)}`,
-                                icon: '/favicon.ico'
+                            new Notification('Pesanan Baru Diterima!', {
+                                body: `${order.userName || 'Tamu'} memesan senilai ${formatPrice(order.total)}`,
+                                icon: '/favicon-buket.svg'
                             });
                         }
 
                         showToast(
-                            `New Order! ${order.userName} — ${formatPrice(order.total)}`,
+                            `Pesanan Baru! ${order.userName || 'Tamu'} — ${formatPrice(order.total)}`,
                             'success',
-                            { label: 'VIEW', onClick: () => setActiveTab('orders') }
+                            { label: 'LIHAT', onClick: () => setActiveTab('orders') }
                         );
                     }
                 }
@@ -139,7 +131,7 @@ const AdminDashboard = () => {
         return () => unsubscribe();
     }, [user, dashboardStartTime, notificationSound]);
 
-    // Real-time products listener — updates instantly when any product changes
+    // Real-time products listener
     useEffect(() => {
         setLoading(true);
         const unsubscribe = onSnapshot(
@@ -154,16 +146,16 @@ const AdminDashboard = () => {
             },
             (error) => {
                 console.error('Error listening to products:', error);
-                showToast('Failed to load products', 'error');
+                showToast('Gagal memuat produk', 'error');
                 setLoading(false);
             }
         );
         return () => unsubscribe();
     }, []);
 
-    // Real-time activity log listener — only runs once user is authenticated
+    // Real-time activity log listener
     useEffect(() => {
-        if (!user) return; // wait for auth before subscribing
+        if (!user) return;
         const q = query(
             collection(db, 'activityLogs'),
             orderBy('createdAt', 'desc'),
@@ -178,9 +170,9 @@ const AdminDashboard = () => {
             setRecentActivity(logs);
         }, (err) => console.error('Activity log error:', err));
         return () => unsubscribe();
-    }, [user]); // re-run when user changes (login/logout)
+    }, [user]);
 
-    // Real-time categories listener — updates instantly when categories are added/edited/deleted
+    // Real-time categories listener
     useEffect(() => {
         const unsubscribe = onSnapshot(
             collection(db, 'categories'),
@@ -192,11 +184,9 @@ const AdminDashboard = () => {
                 console.error('Error listening to categories:', error);
             }
         );
-        return () => unsubscribe(); // cleanup on unmount
+        return () => unsubscribe();
     }, []);
 
-
-    // Handle form input changes
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
         setFormData(prev => ({
@@ -205,7 +195,6 @@ const AdminDashboard = () => {
         }));
     };
 
-    // Add new product
     const handleAddProduct = async (e) => {
         e.preventDefault();
         if (formData.productType === 'affiliate' && !isValidAffiliateUrl(formData.affiliateUrl)) {
@@ -228,27 +217,26 @@ const AdminDashboard = () => {
                 categoryId: categories.find(c => c.name === formData.category)?.id || '',
                 isActive: formData.isActive !== false,
                 images: formData.images,
-                image: formData.images[0] || '',  // backward compat
+                image: formData.images[0] || '',
             };
 
             await addDoc(collection(db, 'products'), productData);
             await logActivity({
                 type: 'product', icon: 'Package',
-                title: 'Product Added',
-                description: `"${formData.name}" added to inventory`,
+                title: 'Produk Ditambahkan',
+                description: `"${formData.name}" ditambahkan ke katalog`,
                 color: 'cyan',
                 admin: { uid: userProfile?.uid, name: userProfile?.displayName, email: userProfile?.email }
             });
-            showToast('Product added successfully!', 'success');
+            showToast('Produk berhasil ditambahkan!', 'success');
             setShowAddForm(false);
             resetForm();
         } catch (error) {
             console.error('Error adding product:', error);
-            showToast('Failed to add product', 'error');
+            showToast('Gagal menambahkan produk', 'error');
         }
     };
 
-    // Update existing product
     const handleUpdateProduct = async (e) => {
         e.preventDefault();
         if (formData.productType === 'affiliate' && !isValidAffiliateUrl(formData.affiliateUrl)) {
@@ -271,27 +259,26 @@ const AdminDashboard = () => {
                 categoryId: categories.find(c => c.name === formData.category)?.id || '',
                 isActive: formData.isActive !== false,
                 images: formData.images,
-                image: formData.images[0] || '',  // backward compat
+                image: formData.images[0] || '',
             };
 
             await updateDoc(doc(db, 'products', editingProduct.id), productData);
             await logActivity({
                 type: 'product', icon: 'Package',
-                title: 'Product Updated',
-                description: `"${formData.name}" details updated`,
+                title: 'Produk Diperbarui',
+                description: `Detail "${formData.name}" diperbarui`,
                 color: 'cyan',
                 admin: { uid: userProfile?.uid, name: userProfile?.displayName, email: userProfile?.email }
             });
-            showToast('Product updated successfully!', 'success');
+            showToast('Produk berhasil diperbarui!', 'success');
             setEditingProduct(null);
             resetForm();
         } catch (error) {
             console.error('Error updating product:', error);
-            showToast('Failed to update product', 'error');
+            showToast('Gagal memperbarui produk', 'error');
         }
     };
 
-    // Delete product
     const openDeleteModal = (productId) => {
         const productName = products.find(p => p.id === productId)?.name || 'Product';
         setDeleteModal({ open: true, productId, productName });
@@ -310,22 +297,21 @@ const AdminDashboard = () => {
             await deleteDoc(doc(db, 'products', productId));
             await logActivity({
                 type: 'product', icon: 'Package',
-                title: 'Product Deleted',
-                description: `"${productName}" removed from inventory`,
+                title: 'Produk Dihapus',
+                description: `"${productName}" dihapus dari katalog`,
                 color: 'orange',
                 admin: { uid: userProfile?.uid, name: userProfile?.displayName, email: userProfile?.email }
             });
-            showToast('Product deleted successfully!', 'success');
+            showToast('Produk berhasil dihapus!', 'success');
             setDeleteModal({ open: false, productId: null, productName: '' });
         } catch (error) {
             console.error('Error deleting product:', error);
-            showToast('Failed to delete product', 'error');
+            showToast('Gagal menghapus produk', 'error');
         } finally {
             setIsDeletingProduct(false);
         }
     };
 
-    // Toggle featured status
     const handleToggleFeatured = async (product) => {
         try {
             const newStatus = !product.isFeatured;
@@ -334,22 +320,20 @@ const AdminDashboard = () => {
             });
             await logActivity({
                 type: 'product', icon: 'Star',
-                title: newStatus ? 'Product Featured' : 'Product Unfeatured',
-                description: `"${product.name}" ${newStatus ? 'marked as' : 'removed from'} featured`,
+                title: newStatus ? 'Produk Unggulan Ditambahkan' : 'Produk Unggulan Dihapus',
+                description: `"${product.name}" ${newStatus ? 'ditandai sebagai' : 'dihapus dari'} produk unggulan`,
                 color: 'yellow',
                 admin: { uid: userProfile?.uid, name: userProfile?.displayName, email: userProfile?.email }
             });
-            showToast(newStatus ? 'Product featured!' : 'Product unfeatured', 'success');
+            showToast(newStatus ? 'Produk dijadikan unggulan di Beranda!' : 'Produk dilepas dari unggulan', 'success');
         } catch (error) {
             console.error('Error toggling featured:', error);
-            showToast('Failed to toggle featured', 'error');
+            showToast('Gagal mengubah status unggulan', 'error');
         }
     };
 
-    // Start editing a product
     const startEdit = (product) => {
         setEditingProduct(product);
-        // Support both old (single image) and new (array) products
         const existingImages = product.images?.length
             ? product.images
             : product.image
@@ -374,13 +358,11 @@ const AdminDashboard = () => {
             isFeatured: product.isFeatured || false
         });
         setShowAddForm(false);
-        // Scroll to top of the main content area
         if (mainRef.current) {
             mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
-    // Reset form
     const resetForm = () => {
         setFormData({
             name: '',
@@ -402,14 +384,12 @@ const AdminDashboard = () => {
         });
     };
 
-    // Cancel editing
     const cancelEdit = () => {
         setEditingProduct(null);
         setShowAddForm(false);
         resetForm();
     };
 
-    // Handle logout
     const handleLogout = async () => {
         try {
             await signOut();
@@ -419,33 +399,27 @@ const AdminDashboard = () => {
         }
     };
 
-    // Filter products based on search
     const filteredProducts = products.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.category.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // Calculate stats
     const totalProducts = products.length;
     const totalValue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
-    const lowStockProducts = products.filter(p => p.stock < 10).length;
+    const lowStockProducts = products.filter(p => p.stock < 10 && p.productType !== 'affiliate').length;
 
     const menuItems = [
         { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { id: 'products', icon: Package, label: 'Products' },
-        { id: 'categories', icon: Tag, label: 'Categories' },
-        { id: 'orders', icon: ShoppingCart, label: 'Orders' },
-        { id: 'customers', icon: Users, label: 'Customers' },
-        { id: 'settings', icon: Settings, label: 'Settings' },
+        { id: 'products', icon: Package, label: 'Produk' },
+        { id: 'categories', icon: Tag, label: 'Kategori' },
+        { id: 'orders', icon: ShoppingCart, label: 'Pesanan' },
+        { id: 'settings', icon: Settings, label: 'Pengaturan' },
     ];
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0e27] via-[#0f172a] to-[#1a1f3a]">
-                <div className="relative">
-                    <div className="animate-spin corner-clip h-16 w-16 border-t-4 border-b-4 border-cyan-400" style={{ boxShadow: '0 0 30px rgba(0, 255, 255, 0.6)' }}></div>
-                    <div className="absolute inset-0 corner-clip border-2 border-magenta-400 animate-ping"></div>
-                </div>
+            <div className="min-h-screen flex items-center justify-center bg-cream">
+                <div className="w-12 h-12 border-4 border-dusty-rose border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
@@ -457,48 +431,31 @@ const AdminDashboard = () => {
                 onClose={closeDeleteModal}
                 onConfirm={handleDeleteProduct}
                 itemName={deleteModal.productName}
-                itemType="Product"
+                itemType="Produk"
                 isDeleting={isDeletingProduct}
             />
+
             {/* Toast Notification */}
             {toast.show && (
                 <div className="fixed top-4 right-4 z-[9999] animate-slide-in-right">
-                    <div className={`flex items-center gap-3 px-6 py-4 corner-clip-sm shadow-2xl border-2 relative overflow-hidden ${toast.type === 'success'
-                        ? 'bg-green-500/10 border-green-500/50 text-green-400'
-                        : 'bg-red-500/10 border-red-500/50 text-red-400'
-                        }`} style={{ boxShadow: toast.type === 'success' ? '0 0 30px rgba(0, 255, 0, 0.4)' : '0 0 30px rgba(255, 0, 0, 0.4)' }}>
-                        <div className="absolute inset-0 bg-gray-900/90 to-gray-800/90"></div>
-                        {toast.type === 'success' ? (
-                            <div className="w-6 h-6 corner-clip-sm bg-green-500 flex items-center justify-center flex-shrink-0 relative z-10" style={{ boxShadow: '0 0 10px rgba(0, 255, 0, 0.8)' }}>
-                                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                            </div>
-                        ) : (
-                            <div className="w-6 h-6 corner-clip-sm bg-red-500 flex items-center justify-center flex-shrink-0 relative z-10" style={{ boxShadow: '0 0 10px rgba(255, 0, 0, 0.8)' }}>
-                                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </div>
-                        )}
-                        <p className="font-bold relative z-10" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{toast.message}</p>
-
+                    <div className={`flex items-center gap-3 px-6 py-4 rounded-xl shadow-lg border text-sm font-semibold ${
+                        toast.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'
+                    }`}>
+                        <p>{toast.message}</p>
                         {toast.action && (
                             <button
                                 onClick={() => {
                                     toast.action.onClick();
                                     setToast({ show: false, message: '', type: '', action: null });
                                 }}
-                                className="ml-4 px-3 py-1 bg-white/10 hover:bg-white/20 border border-white/30 corner-clip-sm text-xs font-black relative z-10 transition-all"
-                                style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                                className="ml-3 px-2.5 py-1 bg-white border border-soft-brown/20 rounded-lg text-xs font-bold text-charcoal hover:bg-cream transition"
                             >
                                 {toast.action.label}
                             </button>
                         )}
-
                         <button
                             onClick={() => setToast({ show: false, message: '', type: '', action: null })}
-                            className="ml-2 hover:opacity-70 transition-opacity relative z-10"
+                            className="ml-2 hover:opacity-70"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -506,53 +463,46 @@ const AdminDashboard = () => {
                 </div>
             )}
 
-            <div className="flex h-screen bg-gradient-to-br from-[#0a0e27] via-[#0f172a] to-[#1a1f3a] overflow-hidden relative">
-                {/* ── Mobile overlay backdrop ── */}
+            <div className="flex h-screen bg-cream overflow-hidden relative">
+                {/* Mobile overlay backdrop */}
                 {mobileSidebarOpen && (
                     <div
-                        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
                         onClick={() => setMobileSidebarOpen(false)}
                     />
                 )}
 
-                {/* ── Sidebar (desktop: always visible | mobile: slide-over drawer) ── */}
+                {/* Sidebar */}
                 <aside className={`
                     fixed md:relative inset-y-0 left-0 z-50
                     ${sidebarOpen ? 'md:w-64' : 'md:w-20'}
                     ${mobileSidebarOpen ? 'w-72 translate-x-0' : 'w-72 -translate-x-full md:translate-x-0'}
-                    bg-gradient-to-b from-gray-900/98 to-gray-800/98 backdrop-blur-xl text-white
+                    bg-white text-charcoal
                     transition-all duration-300 flex flex-col
-                    border-r-2 border-cyan-500/30 overflow-hidden
-                `} style={{ boxShadow: '0 0 40px rgba(0, 255, 255, 0.2)' }}>
-                    {/* Scan lines */}
-                    <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.1) 2px, rgba(0, 255, 255, 0.1) 4px)' }} />
-
+                    border-r border-soft-brown/15 shadow-sm
+                `}>
                     {/* Logo / Toggle */}
-                    <div className={`flex items-center border-b-2 border-cyan-500/30 relative z-10 p-4 ${sidebarOpen ? 'md:p-6 justify-between' : 'justify-center'}`}>
-                        {/* Title — hidden when collapsed on desktop */}
+                    <div className={`flex items-center border-b border-soft-brown/10 p-4 ${sidebarOpen ? 'md:p-6 justify-between' : 'justify-center'}`}>
                         {sidebarOpen && (
                             <div className="hidden md:block">
-                                <h1 className="text-xl md:text-2xl font-black text-cyan-400 uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 20px rgba(0, 255, 255, 1)' }}>Admin Zone</h1>
-                                <p className="text-cyan-300 text-xs md:text-sm font-bold uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Control Panel</p>
+                                <h1 className="text-xl font-extrabold text-charcoal leading-tight">rybelflorist</h1>
+                                <p className="text-charcoal/50 text-xs font-medium">Panel Admin</p>
                             </div>
                         )}
-                        {/* Always show title in mobile drawer */}
                         <div className="md:hidden">
-                            <h1 className="text-xl font-black text-cyan-400 uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 20px rgba(0, 255, 255, 1)' }}>Admin Zone</h1>
-                            <p className="text-cyan-300 text-xs font-bold uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Control Panel</p>
+                            <h1 className="text-xl font-extrabold text-charcoal leading-tight">rybelflorist</h1>
+                            <p className="text-charcoal/50 text-xs font-medium">Panel Admin</p>
                         </div>
-                        {/* Desktop collapse toggle */}
                         <button
                             onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="hidden md:flex p-2 hover:bg-cyan-500/20 corner-clip-sm transition-all duration-200 border-2 border-transparent hover:border-cyan-500/50"
-                            style={{ boxShadow: '0 0 10px rgba(0, 255, 255, 0.2)' }}
+                            className="hidden md:flex p-2 hover:bg-cream rounded-xl transition text-charcoal/60 hover:text-charcoal"
                         >
-                            {sidebarOpen ? <ChevronLeft className="w-5 h-5 text-cyan-400" /> : <Menu className="w-5 h-5 text-cyan-400" />}
+                            {sidebarOpen ? <ChevronLeft className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                         </button>
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 p-3 space-y-1 relative z-10 overflow-y-auto">
+                    <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                         {menuItems.map((item) => (
                             <button
                                 key={item.id}
@@ -562,25 +512,16 @@ const AdminDashboard = () => {
                                     setMobileSidebarOpen(false);
                                 }}
                                 title={!sidebarOpen ? item.label : undefined}
-                                className={`w-full flex items-center corner-clip-sm transition-all duration-200 border-2 relative overflow-hidden group
-                                    space-x-3 px-4 py-3
+                                className={`w-full flex items-center rounded-xl transition-all duration-200
+                                    space-x-3 px-4 py-3 text-sm font-semibold
                                     ${!sidebarOpen ? 'md:justify-center md:px-0 md:space-x-0' : ''}
                                     ${activeTab === item.id
-                                        ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border-cyan-500/50'
-                                        : 'text-cyan-300 hover:bg-cyan-500/10 border-transparent hover:border-cyan-500/30'
+                                        ? 'bg-dusty-rose/15 text-dusty-rose-dark font-bold'
+                                        : 'text-charcoal/70 hover:bg-cream hover:text-charcoal'
                                     }`}
-                                style={activeTab === item.id ? { boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)' } : {}}
                             >
-                                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <item.icon
-                                    className="w-5 h-5 flex-shrink-0 relative z-10"
-                                    style={activeTab === item.id ? { filter: 'drop-shadow(0 0 5px rgba(0, 255, 255, 0.8))' } : {}}
-                                />
-                                {/* Label: always visible in mobile drawer, hidden when collapsed on desktop */}
-                                <span
-                                    className={`font-black uppercase tracking-wide relative z-10 inline ${!sidebarOpen ? 'md:hidden' : ''}`}
-                                    style={{ fontFamily: 'Rajdhani, sans-serif' }}
-                                >
+                                <item.icon className="w-5 h-5 flex-shrink-0" />
+                                <span className={`${!sidebarOpen ? 'md:hidden' : ''} inline`}>
                                     {item.label}
                                 </span>
                             </button>
@@ -588,34 +529,26 @@ const AdminDashboard = () => {
                     </nav>
 
                     {/* User Profile & Logout */}
-                    <div className="p-4 border-t-2 border-cyan-500/20 relative z-10">
-                        <div className="bg-gray-800/60 corner-clip-sm border border-cyan-500/20 overflow-hidden"
-                            style={{ boxShadow: '0 0 20px rgba(0,255,255,0.08)' }}>
-                            <div className={`flex items-center gap-3 px-4 py-3 ${!sidebarOpen ? 'md:flex-col md:gap-2 md:px-2' : ''}`}>
-                                <div className="w-9 h-9 border border-cyan-500/50 corner-clip-sm flex items-center justify-center flex-shrink-0"
-                                    style={{ boxShadow: '0 0 12px rgba(0,255,255,0.2)' }}>
-                                    <span className="text-cyan-400 font-black text-sm" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                                        {userProfile?.displayName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase()}
-                                    </span>
-                                </div>
-                                {/* User info — hidden when collapsed on desktop */}
-                                <div className={`flex-1 min-w-0 ${!sidebarOpen ? 'md:hidden' : ''} block`}>
-                                    <p className="text-white font-black text-sm truncate leading-tight" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                        {userProfile?.displayName || user?.email?.split('@')[0]}
-                                    </p>
-                                    <p className="text-cyan-400 text-xs font-bold uppercase tracking-widest" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                        Administrator
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={handleLogout}
-                                    title="Logout"
-                                    className="w-8 h-8 flex items-center justify-center corner-clip-sm border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-400 transition-all duration-200 flex-shrink-0 group"
-                                    style={{ boxShadow: '0 0 8px rgba(255,0,0,0.15)' }}
-                                >
-                                    <LogOut className="w-4 h-4 group-hover:rotate-12 transition-transform duration-200" />
-                                </button>
+                    <div className="p-4 border-t border-soft-brown/10">
+                        <div className="bg-cream rounded-xl p-3 flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-dusty-rose/20 text-dusty-rose-dark flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                {userProfile?.displayName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase()}
                             </div>
+                            <div className={`flex-1 min-w-0 ${!sidebarOpen ? 'md:hidden' : ''}`}>
+                                <p className="text-charcoal font-bold text-xs truncate">
+                                    {userProfile?.displayName || user?.email?.split('@')[0]}
+                                </p>
+                                <p className="text-charcoal/50 text-[10px] font-semibold">
+                                    Admin
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                title="Keluar"
+                                className="p-1.5 rounded-lg text-charcoal/40 hover:text-red-600 hover:bg-red-50 transition"
+                            >
+                                <LogOut className="w-4 h-4" />
+                            </button>
                         </div>
                     </div>
                 </aside>
@@ -623,290 +556,176 @@ const AdminDashboard = () => {
                 {/* Main Content */}
                 <main ref={mainRef} className="flex-1 overflow-y-auto flex flex-col">
                     {/* Mobile top bar */}
-                    <div className="md:hidden flex items-center justify-between px-4 py-3 bg-gray-900/95 border-b-2 border-cyan-500/30 sticky top-0 z-30"
-                        style={{ boxShadow: '0 0 20px rgba(0,255,255,0.15)' }}>
+                    <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-soft-brown/15 sticky top-0 z-30 shadow-sm">
                         <button
                             onClick={() => setMobileSidebarOpen(true)}
-                            className="p-2 hover:bg-cyan-500/20 corner-clip-sm border-2 border-cyan-500/40 transition-all"
+                            className="p-2 hover:bg-cream rounded-xl text-charcoal"
                         >
-                            <Menu className="w-5 h-5 text-cyan-400" />
+                            <Menu className="w-5 h-5" />
                         </button>
-                        <h1 className="text-lg font-black text-cyan-400 uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 15px rgba(0,255,255,0.8)' }}>
+                        <h1 className="text-base font-bold text-charcoal">
                             {menuItems.find(m => m.id === activeTab)?.label || 'Admin'}
                         </h1>
-                        <div className="w-9 h-9 border border-cyan-500/50 corner-clip-sm flex items-center justify-center"
-                            style={{ boxShadow: '0 0 10px rgba(0,255,255,0.3)' }}>
-                            <span className="text-cyan-400 font-black text-sm" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                                {user?.displayName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase()}
-                            </span>
+                        <div className="w-8 h-8 rounded-lg bg-dusty-rose/15 text-dusty-rose-dark flex items-center justify-center font-bold text-xs">
+                            {user?.displayName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase()}
                         </div>
                     </div>
 
                     {/* Content Area */}
-                    <div className="p-4 md:p-8 pb-8">
+                    <div className="p-4 md:p-8 pb-12">
                         {/* Dashboard View */}
                         {activeTab === 'dashboard' && (
-                            <div className="space-y-4 md:space-y-6 animate-fade-in">
-                                {/* Header — hidden on mobile (shown in top bar) */}
-                                <div className="hidden md:block bg-gray-900 corner-clip p-6 md:p-8 border-2 border-cyan-500/50 relative overflow-hidden" style={{ boxShadow: '0 0 40px rgba(0, 255, 255, 0.4)' }}>
-                                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.1) 2px, rgba(0, 255, 255, 0.1) 4px)' }} />
-                                    <div className="flex items-center space-x-4 relative z-10">
-                                        <div className="w-14 h-14 md:w-16 md:h-16 border-2 border-cyan-500/50 corner-clip flex items-center justify-center" style={{ boxShadow: '0 0 30px rgba(0, 255, 255, 0.2)' }}>
-                                            <LayoutDashboard className="w-7 h-7 md:w-8 md:h-8 text-cyan-400" style={{ filter: 'drop-shadow(0 0 10px rgba(0, 255, 255, 0.5))' }} />
+                            <div className="space-y-6 animate-fade-in">
+                                <div className="hidden md:block bg-white rounded-2xl p-8 border border-soft-brown/15 shadow-sm">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="w-16 h-16 rounded-2xl bg-dusty-rose/10 border border-dusty-rose/20 flex items-center justify-center">
+                                            <LayoutDashboard className="w-8 h-8 text-dusty-rose" />
                                         </div>
                                         <div>
-                                            <h1 className="text-3xl md:text-4xl font-black text-cyan-400 mb-1 uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 20px rgba(0, 255, 255, 1)' }}>Dashboard</h1>
-                                            <p className="text-cyan-200 text-base md:text-lg font-bold uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Command Center Overview</p>
+                                            <h1 className="text-3xl font-extrabold text-charcoal mb-1">Dashboard</h1>
+                                            <p className="text-charcoal/60 text-sm font-medium">Ringkasan Aktivitas & Katalog Toko</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Stats Cards */}
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
-                                    <div className="bg-gray-900 backdrop-blur-sm p-4 md:p-6 corner-clip border-2 border-cyan-500/50 relative overflow-hidden" style={{ boxShadow: '0 0 30px rgba(0, 255, 255, 0.5)' }}>
-                                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-transparent"></div>
-                                        <div className="flex items-center justify-between relative z-10">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+                                    <div className="bg-white p-6 rounded-2xl border border-soft-brown/15 shadow-sm">
+                                        <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-cyan-200 text-xs md:text-sm font-black uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Total Products</p>
-                                                <h3 className="text-3xl lg:text-5xl md:text-4xl font-black mt-1 md:mt-2 text-white" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 20px rgba(0, 255, 255, 1)' }}>{totalProducts}</h3>
+                                                <p className="text-charcoal/60 text-xs font-bold uppercase tracking-wider">Total Produk</p>
+                                                <h3 className="text-3xl font-extrabold mt-1 text-charcoal">{totalProducts}</h3>
                                             </div>
-                                            <div className="p-3 md:p-4 bg-cyan-500/20 corner-clip border-2 border-cyan-500/50" style={{ boxShadow: '0 0 20px rgba(0, 255, 255, 0.6)' }}>
-                                                <Package className="w-6 h-6 md:w-8 md:h-8 text-cyan-400" style={{ filter: 'drop-shadow(0 0 10px rgba(0, 255, 255, 1))' }} />
+                                            <div className="p-3 bg-dusty-rose/10 rounded-2xl text-dusty-rose">
+                                                <Package className="w-6 h-6" />
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="bg-gray-900 backdrop-blur-sm p-4 md:p-6 corner-clip border-2 border-green-500/50 relative overflow-hidden" style={{ boxShadow: '0 0 30px rgba(0, 255, 0, 0.5)' }}>
-                                        <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-transparent"></div>
-                                        <div className="flex items-center justify-between relative z-10">
+                                    <div className="bg-white p-6 rounded-2xl border border-soft-brown/15 shadow-sm">
+                                        <div className="flex items-center justify-between">
                                             <div className="min-w-0 flex-1 mr-2">
-                                                <p className="text-green-200 text-[10px] md:text-sm font-black uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Inventory Value</p>
-                                                <h3 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-black mt-1 text-white leading-tight"
-                                                    style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 20px rgba(0, 255, 0, 0.8)' }}>
+                                                <p className="text-charcoal/60 text-xs font-bold uppercase tracking-wider">Nilai Estimasi Stok</p>
+                                                <h3 className="text-2xl font-extrabold mt-1 text-charcoal truncate">
                                                     {formatPrice(totalValue)}
                                                 </h3>
                                             </div>
-                                            <div className="p-2 md:p-4 bg-green-500/20 corner-clip border-2 border-green-500/50 flex-shrink-0" style={{ boxShadow: '0 0 20px rgba(0, 255, 0, 0.6)' }}>
-                                                <DollarSign className="w-5 h-5 md:w-8 md:h-8 text-green-400" style={{ filter: 'drop-shadow(0 0 10px rgba(0, 255, 0, 1))' }} />
+                                            <div className="p-3 bg-green-50 rounded-2xl text-green-700">
+                                                <DollarSign className="w-6 h-6" />
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="bg-gray-900 backdrop-blur-sm p-4 md:p-6 corner-clip border-2 border-orange-500/50 relative overflow-hidden" style={{ boxShadow: '0 0 30px rgba(255, 165, 0, 0.5)' }}>
-                                        <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-transparent"></div>
-                                        <div className="flex items-center justify-between relative z-10">
+                                    <div className="bg-white p-6 rounded-2xl border border-soft-brown/15 shadow-sm">
+                                        <div className="flex items-center justify-between">
                                             <div>
-                                                <p className="text-orange-200 text-xs md:text-sm font-black uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Low Stock Items</p>
-                                                <h3 className="text-3xl lg:text-5xl md:text-4xl font-black mt-1 md:mt-2 text-white" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 20px rgba(255, 165, 0, 1)' }}>{lowStockProducts}</h3>
+                                                <p className="text-charcoal/60 text-xs font-bold uppercase tracking-wider">Stok Menipis (&lt;10)</p>
+                                                <h3 className="text-3xl font-extrabold mt-1 text-charcoal">{lowStockProducts}</h3>
                                             </div>
-                                            <div className="p-3 md:p-4 bg-orange-500/20 corner-clip border-2 border-orange-500/50" style={{ boxShadow: '0 0 20px rgba(255, 165, 0, 0.6)' }}>
-                                                <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-orange-400" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 165, 0, 1))' }} />
+                                            <div className="p-3 bg-amber-50 rounded-2xl text-amber-700">
+                                                <TrendingUp className="w-6 h-6" />
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Quick Actions */}
-                                <div className="bg-gray-900 corner-clip p-4 md:p-6 border-2 border-cyan-500/30 relative overflow-hidden" style={{ boxShadow: '0 0 30px rgba(0, 255, 255, 0.2)' }}>
-                                    <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.1) 2px, rgba(0, 255, 255, 0.1) 4px)' }}></div>
-                                    <h3 className="text-lg md:text-2xl font-black mb-4 md:mb-6 text-cyan-400 uppercase tracking-wider relative z-10" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 15px rgba(0, 255, 255, 0.8)' }}>Quick Actions</h3>
-                                    <div className="grid grid-cols-2 gap-3 md:gap-4 relative z-10">
+                                <div className="bg-white rounded-2xl p-6 border border-soft-brown/15 shadow-sm">
+                                    <h3 className="text-base font-bold text-charcoal mb-4">Aksi Cepat</h3>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
                                         <button
                                             onClick={() => {
                                                 setActiveTab('products');
                                                 setShowAddForm(true);
                                                 resetForm();
                                             }}
-                                            className="p-4 md:p-6 border-2 border-cyan-500/50 corner-clip-sm hover:border-cyan-400 hover:bg-cyan-500/10 transition-all text-center group relative overflow-hidden"
-                                            style={{ boxShadow: '0 0 15px rgba(0, 255, 255, 0.2)' }}
+                                            className="p-5 border border-soft-brown/20 rounded-2xl hover:bg-cream transition text-center group"
                                         >
-                                            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                            <Plus className="w-7 h-7 md:w-10 md:h-10 mx-auto mb-2 md:mb-3 text-cyan-400 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(0, 255, 255, 0.8))' }} />
-                                            <p className="font-black text-white uppercase tracking-wide text-xs md:text-sm relative z-10" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Add Product</p>
+                                            <Plus className="w-7 h-7 mx-auto mb-2 text-dusty-rose group-hover:scale-110 transition-transform" />
+                                            <p className="font-semibold text-charcoal text-xs sm:text-sm">Tambah Produk</p>
                                         </button>
                                         <button
                                             onClick={() => setActiveTab('orders')}
-                                            className="p-4 md:p-6 border-2 border-magenta-500/50 corner-clip-sm hover:border-magenta-400 hover:bg-magenta-500/10 transition-all text-center group relative overflow-hidden"
-                                            style={{ boxShadow: '0 0 15px rgba(255, 0, 255, 0.2)' }}
+                                            className="p-5 border border-soft-brown/20 rounded-2xl hover:bg-cream transition text-center group"
                                         >
-                                            <div className="absolute inset-0 bg-gradient-to-r from-magenta-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                            <ShoppingCart className="w-7 h-7 md:w-10 md:h-10 mx-auto mb-2 md:mb-3 text-magenta-400 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(255, 0, 255, 0.8))' }} />
-                                            <p className="font-black text-white uppercase tracking-wide text-xs md:text-sm relative z-10" style={{ fontFamily: 'Rajdhani, sans-serif' }}>View Orders</p>
+                                            <ShoppingCart className="w-7 h-7 mx-auto mb-2 text-dusty-rose group-hover:scale-110 transition-transform" />
+                                            <p className="font-semibold text-charcoal text-xs sm:text-sm">Kelola Pesanan</p>
                                         </button>
                                         <button
-                                            onClick={() => setActiveTab('customers')}
-                                            className="p-4 md:p-6 border-2 border-purple-500/50 corner-clip-sm hover:border-purple-400 hover:bg-purple-500/10 transition-all text-center group relative overflow-hidden"
-                                            style={{ boxShadow: '0 0 15px rgba(147, 51, 234, 0.2)' }}
+                                            onClick={() => setActiveTab('categories')}
+                                            className="p-5 border border-soft-brown/20 rounded-2xl hover:bg-cream transition text-center group"
                                         >
-                                            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                            <Users className="w-7 h-7 md:w-10 md:h-10 mx-auto mb-2 md:mb-3 text-purple-400 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(147, 51, 234, 0.8))' }} />
-                                            <p className="font-black text-white uppercase tracking-wide text-xs md:text-sm relative z-10" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Customers</p>
-                                        </button>
-                                        <button
-                                            onClick={() => setActiveTab('settings')}
-                                            className="p-4 md:p-6 border-2 border-blue-500/50 corner-clip-sm hover:border-blue-400 hover:bg-blue-500/10 transition-all text-center group relative overflow-hidden"
-                                            style={{ boxShadow: '0 0 15px rgba(59, 130, 246, 0.2)' }}
-                                        >
-                                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                            <Settings className="w-7 h-7 md:w-10 md:h-10 mx-auto mb-2 md:mb-3 text-blue-400 relative z-10" style={{ filter: 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.8))' }} />
-                                            <p className="font-black text-white uppercase tracking-wide text-xs md:text-sm relative z-10" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Settings</p>
+                                            <Tag className="w-7 h-7 mx-auto mb-2 text-dusty-rose group-hover:scale-110 transition-transform" />
+                                            <p className="font-semibold text-charcoal text-xs sm:text-sm">Kategori</p>
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* Recent Activity */}
-                                <div className="bg-gray-900 corner-clip p-6 border-2 border-purple-500/30 relative overflow-hidden" style={{ boxShadow: '0 0 30px rgba(147, 51, 234, 0.2)' }}>
-                                    <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(147, 51, 234, 0.1) 2px, rgba(147, 51, 234, 0.1) 4px)' }}></div>
-                                    {/* Header row */}
-                                    <div className="flex items-center justify-between mb-6 relative z-10">
-                                        <div className="flex items-center space-x-3">
-                                            <h3 className="text-2xl font-black text-purple-400 uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 15px rgba(147, 51, 234, 0.8)' }}>Recent Activity</h3>
-                                            {recentActivity.length > 0 && (
-                                                <span className="px-2 py-0.5 bg-purple-500/20 border border-purple-500/50 corner-clip-sm text-purple-300 text-xs font-black"
-                                                    style={{ fontFamily: 'Orbitron, sans-serif', boxShadow: '0 0 8px rgba(147,51,234,0.4)' }}>
-                                                    {recentActivity.length}
-                                                </span>
-                                            )}
-                                        </div>
+                                <div className="bg-white rounded-2xl p-6 border border-soft-brown/15 shadow-sm">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="text-base font-bold text-charcoal">Aktivitas Terkini</h3>
                                         {recentActivity.length > 4 && (
                                             <button
                                                 onClick={() => setShowAllActivity(prev => !prev)}
-                                                className="inline-flex items-center space-x-1 px-4 py-2 corner-clip-sm border-2 border-purple-500/40 bg-purple-500/10 hover:bg-purple-500/20 hover:border-purple-400 text-purple-300 text-xs font-black uppercase tracking-wide transition-all"
-                                                style={{ fontFamily: 'Rajdhani, sans-serif', boxShadow: '0 0 10px rgba(147,51,234,0.2)' }}
+                                                className="text-xs font-semibold text-dusty-rose hover:text-dusty-rose-dark transition"
                                             >
-                                                {showAllActivity ? (
-                                                    <><span>Show Less</span><span className="ml-1">↑</span></>
-                                                ) : (
-                                                    <><span>View All</span><span className="ml-1 text-purple-400">+{recentActivity.length - 4}</span></>
-                                                )}
+                                                {showAllActivity ? 'Tampilkan Lebih Sedikit' : `Lihat Semua (${recentActivity.length})`}
                                             </button>
                                         )}
                                     </div>
-                                    <div className="space-y-3 relative z-10">
+                                    <div className="space-y-2.5">
                                         {recentActivity.length > 0 ? (
                                             (showAllActivity ? recentActivity : recentActivity.slice(0, 4)).map((activity, index) => {
                                                 const IconComponent = activity.icon === 'Package' ? Package :
                                                     activity.icon === 'ShoppingCart' ? ShoppingCart :
-                                                        activity.icon === 'Banknote' ? Banknote :
-                                                            activity.icon === 'Users' ? Users : TrendingUp;
-
-                                                const colorMap = {
-                                                    cyan: { border: 'border-cyan-500/20 hover:border-cyan-500/40 hover:bg-cyan-500/5', bg: 'from-cyan-500 to-blue-500', shadow: '0 0 15px rgba(0, 255, 255, 0.4)', text: 'text-cyan-300', arrow: 'text-cyan-500' },
-                                                    green: { border: 'border-green-500/20 hover:border-green-500/40 hover:bg-green-500/5', bg: 'from-green-500 to-emerald-500', shadow: '0 0 15px rgba(0, 255, 0, 0.4)', text: 'text-green-300', arrow: 'text-green-500' },
-                                                    magenta: { border: 'border-magenta-500/20 hover:border-magenta-500/40 hover:bg-magenta-500/5', bg: 'from-magenta-500 to-purple-500', shadow: '0 0 15px rgba(255, 0, 255, 0.4)', text: 'text-magenta-300', arrow: 'text-magenta-500' },
-                                                    orange: { border: 'border-orange-500/20 hover:border-orange-500/40 hover:bg-orange-500/5', bg: 'from-orange-500 to-red-500', shadow: '0 0 15px rgba(255, 165, 0, 0.4)', text: 'text-orange-300', arrow: 'text-orange-500' },
-                                                    yellow: { border: 'border-yellow-500/20 hover:border-yellow-500/40 hover:bg-yellow-500/5', bg: 'from-yellow-500 to-orange-500', shadow: '0 0 15px rgba(255, 255, 0, 0.4)', text: 'text-yellow-300', arrow: 'text-yellow-500' },
-                                                    red: { border: 'border-red-500/20 hover:border-red-500/40 hover:bg-red-500/5', bg: 'from-red-500 to-rose-500', shadow: '0 0 15px rgba(239, 68, 68, 0.4)', text: 'text-red-300', arrow: 'text-red-500' }
-                                                };
-
-                                                const colors = colorMap[activity.color] || colorMap.cyan;
-
-                                                // Map activity type → admin tab name
-                                                const getTargetTab = (log) => {
-                                                    // Direct match
-                                                    if (log.type === 'bank') return 'bank-accounts';
-                                                    if (log.type === 'product') return 'products';
-                                                    if (log.type === 'order') return 'orders';
-                                                    if (log.type === 'user') return 'customers';
-                                                    if (log.type === 'category') return 'categories';
-
-                                                    // Legacy or fallback check for settings/bank
-                                                    if (log.type === 'settings') {
-                                                        const desc = (log.title + log.description).toLowerCase();
-                                                        if (desc.includes('bank') || desc.includes('account')) return 'bank-accounts';
-                                                        return 'settings';
-                                                    }
-                                                    return null;
-                                                };
-                                                const targetTab = getTargetTab(activity);
+                                                        activity.icon === 'Banknote' ? Banknote : TrendingUp;
 
                                                 const getTimeAgo = (timestamp) => {
                                                     const seconds = Math.floor((new Date().getTime() - timestamp) / 1000);
-                                                    if (seconds < 60) return 'Just now';
-                                                    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-                                                    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-                                                    return `${Math.floor(seconds / 86400)}d ago`;
+                                                    if (seconds < 60) return 'Baru saja';
+                                                    if (seconds < 3600) return `${Math.floor(seconds / 60)}m lalu`;
+                                                    if (seconds < 86400) return `${Math.floor(seconds / 3600)}j lalu`;
+                                                    return `${Math.floor(seconds / 86400)}h lalu`;
                                                 };
 
                                                 return (
-                                                    <button
+                                                    <div
                                                         key={index}
-                                                        onClick={() => targetTab && setActiveTab(targetTab)}
-                                                        className={`w-full text-left flex items-start sm:items-center gap-3 md:gap-4 p-3 md:p-4 bg-gray-800/50 corner-clip-sm border ${colors.border} transition-all group ${targetTab ? 'cursor-pointer' : 'cursor-default'}`}
+                                                        className="flex items-center gap-3.5 p-3.5 bg-cream/70 rounded-xl border border-soft-brown/10 text-charcoal"
                                                     >
-                                                        <div className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br ${colors.bg} corner-clip-sm flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110`} style={{ boxShadow: colors.shadow }}>
-                                                            <IconComponent className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                                                        <div className="w-9 h-9 rounded-xl bg-white border border-soft-brown/20 flex items-center justify-center flex-shrink-0 text-dusty-rose">
+                                                            <IconComponent className="w-4 h-4" />
                                                         </div>
-                                                        <div className="flex-1 min-w-0 py-0.5">
-                                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1">
-                                                                <p className="text-white font-bold text-sm md:text-base leading-tight" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{activity.title}</p>
-                                                                <span className="text-gray-500 text-[10px] md:text-xs font-bold sm:hidden" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                                    {getTimeAgo(activity.timestamp)}
-                                                                </span>
-                                                            </div>
-                                                            <p className={`${colors.text} text-xs md:text-sm break-words line-clamp-2 md:line-clamp-1`} style={{ fontFamily: 'Rajdhani, sans-serif' }}>{activity.description}</p>
-                                                            {activity.adminName && (
-                                                                <div className="flex items-center gap-1.5 mt-2">
-                                                                    <div className="w-4 h-4 rounded-full bg-purple-500/30 border border-purple-500/50 flex items-center justify-center flex-shrink-0">
-                                                                        <span className="text-purple-300 font-black" style={{ fontSize: '8px', fontFamily: 'Orbitron, sans-serif' }}>
-                                                                            {activity.adminName.charAt(0).toUpperCase()}
-                                                                        </span>
-                                                                    </div>
-                                                                    <span className="text-gray-400 text-[10px] md:text-xs font-bold truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                                        {activity.adminName}
-                                                                    </span>
-                                                                </div>
-                                                            )}
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-bold text-xs sm:text-sm text-charcoal truncate">{activity.title}</p>
+                                                            <p className="text-xs text-charcoal/60 truncate">{activity.description}</p>
                                                         </div>
-                                                        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-                                                            <span className="text-gray-500 text-xs font-bold" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                                {getTimeAgo(activity.timestamp)}
-                                                            </span>
-                                                            {targetTab && (
-                                                                <span className={`${colors.arrow} opacity-0 group-hover:opacity-100 transition-opacity text-sm`}>→</span>
-                                                            )}
-                                                        </div>
-                                                        {targetTab && (
-                                                            <span className={`${colors.arrow} sm:hidden self-center text-xs opacity-50`}>→</span>
-                                                        )}
-                                                    </button>
+                                                        <span className="text-[10px] text-charcoal/40 font-medium whitespace-nowrap">
+                                                            {getTimeAgo(activity.timestamp)}
+                                                        </span>
+                                                    </div>
                                                 );
                                             })
                                         ) : (
-                                            <div className="text-center py-8">
-                                                <p className="text-gray-400" style={{ fontFamily: 'Rajdhani, sans-serif' }}>No recent activity</p>
-                                            </div>
+                                            <p className="text-charcoal/50 text-xs py-4 text-center">Belum ada aktivitas tercatat.</p>
                                         )}
                                     </div>
-                                    {/* Bottom View All button (when expanded) */}
-                                    {showAllActivity && recentActivity.length > 4 && (
-                                        <div className="mt-4 pt-4 border-t border-purple-500/20 relative z-10">
-                                            <button
-                                                onClick={() => setShowAllActivity(false)}
-                                                className="w-full py-2 corner-clip-sm border border-purple-500/30 text-purple-400 text-xs font-black uppercase tracking-wide hover:bg-purple-500/10 transition-all"
-                                                style={{ fontFamily: 'Rajdhani, sans-serif' }}
-                                            >
-                                                ↑ Show Less
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         )}
 
                         {/* Products View */}
                         {activeTab === 'products' && (
-                            <div className="space-y-4 md:space-y-6 animate-fade-in">
-                                {/* Header — hidden on mobile */}
-                                <div className="hidden md:block bg-gray-900 corner-clip p-6 md:p-8 border-2 border-magenta-500/50 relative overflow-hidden" style={{ boxShadow: '0 0 40px rgba(255, 0, 255, 0.4)' }}>
-                                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 0, 255, 0.1) 2px, rgba(255, 0, 255, 0.1) 4px)' }} />
-                                    <div className="flex items-center space-x-4 relative z-10">
-                                        <div className="w-14 h-14 md:w-16 md:h-16 border-2 border-magenta-500/50 corner-clip flex items-center justify-center" style={{ boxShadow: '0 0 30px rgba(255, 0, 255, 0.2)' }}>
-                                            <Package className="w-7 h-7 md:w-8 md:h-8 text-magenta-400" style={{ filter: 'drop-shadow(0 0 10px rgba(255, 0, 255, 0.5))' }} />
+                            <div className="space-y-6 animate-fade-in">
+                                <div className="hidden md:block bg-white rounded-2xl p-8 border border-soft-brown/15 shadow-sm">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="w-16 h-16 rounded-2xl bg-dusty-rose/10 border border-dusty-rose/20 flex items-center justify-center">
+                                            <Package className="w-8 h-8 text-dusty-rose" />
                                         </div>
                                         <div>
-                                            <h1 className="text-2xl md:text-4xl font-black text-magenta-400 mb-1 uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 20px rgba(255, 0, 255, 1)' }}>Product Management</h1>
-                                            <p className="text-magenta-200 text-base md:text-lg font-bold uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Inventory Control System</p>
+                                            <h1 className="text-3xl font-extrabold text-charcoal mb-1">Katalog Produk</h1>
+                                            <p className="text-charcoal/60 text-sm font-medium">Manajemen Produk Toko & Affiliate Shopee</p>
                                         </div>
                                     </div>
                                 </div>
@@ -914,14 +733,13 @@ const AdminDashboard = () => {
                                 {/* Toolbar */}
                                 <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
                                     <div className="relative w-full sm:flex-1 sm:max-w-md">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cyan-400 w-4 h-4 md:w-5 md:h-5" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 255, 255, 0.6))' }} />
+                                        <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-soft-brown w-4 h-4" />
                                         <input
                                             type="text"
-                                            placeholder="SEARCH PRODUCTS..."
+                                            placeholder="Cari nama atau kategori produk..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-gray-900 border-2 border-cyan-500/50 corner-clip-sm text-white text-xs md:text-sm placeholder-cyan-300/30 focus:outline-none focus:border-cyan-400 transition-all uppercase tracking-widest"
-                                            style={{ fontFamily: 'Rajdhani, sans-serif', boxShadow: '0 0 20px rgba(0, 255, 255, 0.2)' }}
+                                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-soft-brown/20 rounded-xl text-charcoal placeholder-charcoal/40 text-xs font-medium focus:outline-none focus:border-dusty-rose"
                                         />
                                     </div>
                                     <button
@@ -930,329 +748,286 @@ const AdminDashboard = () => {
                                             setEditingProduct(null);
                                             resetForm();
                                         }}
-                                        className="w-full sm:w-auto flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-black uppercase tracking-wide corner-clip-sm border-2 border-cyan-400 transition-all"
-                                        style={{ fontFamily: 'Rajdhani, sans-serif', boxShadow: '0 0 20px rgba(0, 255, 255, 0.5)' }}
+                                        className="btn-primary inline-flex items-center justify-center space-x-2 text-xs"
                                     >
-                                        <Plus className="w-5 h-5" style={{ filter: 'drop-shadow(0 0 5px rgba(255, 255, 255, 0.8))' }} />
-                                        <span>Add Product</span>
+                                        <Plus className="w-4 h-4" />
+                                        <span>Tambah Produk</span>
                                     </button>
                                 </div>
 
                                 {/* Add/Edit Form */}
                                 {(showAddForm || editingProduct) && (
-                                    <div className="bg-gray-900 corner-clip p-6 border-2 border-magenta-500/50 animate-fade-in relative overflow-hidden" style={{ boxShadow: '0 0 30px rgba(255, 0, 255, 0.3)' }}>
-                                        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 0, 255, 0.1) 2px, rgba(255, 0, 255, 0.1) 4px)' }}></div>
-                                        <div className="flex justify-between items-center mb-6 relative z-10">
-                                            <h3 className="text-2xl font-black text-magenta-400 uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 15px rgba(255, 0, 255, 0.8)' }}>
-                                                {editingProduct ? 'Edit Product' : 'Add New Product'}
+                                    <div className="bg-white rounded-2xl p-6 sm:p-8 border border-soft-brown/15 shadow-sm space-y-6 animate-fade-in">
+                                        <div className="flex justify-between items-center pb-4 border-b border-soft-brown/10">
+                                            <h3 className="text-lg font-bold text-charcoal">
+                                                {editingProduct ? 'Edit Produk' : 'Tambah Produk Baru'}
                                             </h3>
-                                            <button onClick={cancelEdit} className="p-2 hover:bg-red-500/20 corner-clip-sm border-2 border-red-500/50 hover:border-red-500 transition-all" style={{ boxShadow: '0 0 10px rgba(255, 0, 0, 0.3)' }}>
-                                                <X className="w-6 h-6 text-red-400" style={{ filter: 'drop-shadow(0 0 5px rgba(255, 0, 0, 0.8))' }} />
+                                            <button onClick={cancelEdit} className="p-1.5 text-charcoal/40 hover:text-charcoal rounded-full hover:bg-cream transition">
+                                                <X className="w-5 h-5" />
                                             </button>
                                         </div>
 
-                                        <form onSubmit={editingProduct ? handleUpdateProduct : handleAddProduct} className="space-y-6 relative z-10">
-                                            {/* Basic Information Section */}
-                                            <div className="bg-gray-800/50 p-6 corner-clip-sm border-2 border-cyan-500/30 relative overflow-hidden">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-transparent"></div>
-                                                <h3 className="text-lg font-black text-cyan-400 mb-4 flex items-center uppercase tracking-wide relative z-10" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                    <Package className="w-5 h-5 mr-2" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 255, 255, 0.8))' }} />
-                                                    Basic Information
-                                                </h3>
-                                                <div className="grid md:grid-cols-2 gap-6 relative z-10">
+                                        <form onSubmit={editingProduct ? handleUpdateProduct : handleAddProduct} className="space-y-6">
+                                            {/* Basic Information */}
+                                            <div className="bg-cream/60 p-5 rounded-2xl border border-soft-brown/15 space-y-4">
+                                                <h4 className="text-xs font-bold text-charcoal uppercase tracking-wider">
+                                                    Informasi Produk
+                                                </h4>
+                                                <div className="grid md:grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="block text-sm font-black text-cyan-300 mb-2">Tipe Produk *</label>
-                                                        <select name="productType" value={formData.productType || 'store'} onChange={handleInputChange} className="input-field">
-                                                            <option value="store">Buket milik toko</option><option value="affiliate">Affiliate Shopee</option>
+                                                        <label className="block text-xs font-bold text-charcoal mb-1">Tipe Produk *</label>
+                                                        <select
+                                                            name="productType"
+                                                            value={formData.productType || 'store'}
+                                                            onChange={handleInputChange}
+                                                            className="w-full px-3.5 py-2.5 bg-white border border-soft-brown/20 rounded-xl text-charcoal text-xs font-medium focus:outline-none focus:border-dusty-rose"
+                                                        >
+                                                            <option value="store">Buket Milik Toko</option>
+                                                            <option value="affiliate">Affiliate Shopee (Perlengkapan Buket)</option>
                                                         </select>
                                                     </div>
                                                     <div>
-                                                        <label className="block text-sm font-black text-cyan-300 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                            Product Name *
-                                                        </label>
+                                                        <label className="block text-xs font-bold text-charcoal mb-1">Nama Produk *</label>
                                                         <input
                                                             type="text"
                                                             name="name"
                                                             value={formData.name}
                                                             onChange={handleInputChange}
-                                                            className="w-full px-4 py-3 bg-gray-900 border-2 border-cyan-500/50 corner-clip-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400 transition-all"
-                                                            style={{ fontFamily: 'Rajdhani, sans-serif' }}
-                                                            placeholder="e.g., Premium Wireless Headphones"
+                                                            className="w-full px-3.5 py-2.5 bg-white border border-soft-brown/20 rounded-xl text-charcoal placeholder-charcoal/40 text-xs font-medium focus:outline-none focus:border-dusty-rose"
+                                                            placeholder="Contoh: Buket Mawar Merah Elegant"
                                                             required
                                                         />
                                                     </div>
 
-                                                    {formData.productType === 'affiliate' && <>
-                                                        <div>
-                                                            <label className="block text-sm font-black text-cyan-300 mb-2">Platform affiliate</label>
-                                                            <input name="affiliatePlatform" value={formData.affiliatePlatform || 'Shopee'} onChange={handleInputChange} className="input-field" />
-                                                        </div>
-                                                        <div className="md:col-span-2">
-                                                            <label className="block text-sm font-black text-cyan-300 mb-2">Link affiliate (HTTPS) *</label>
-                                                            <input type="url" name="affiliateUrl" value={formData.affiliateUrl || ''} onChange={handleInputChange} className="input-field" placeholder="https://shopee.co.id/..." required />
-                                                        </div>
-                                                    </>}
+                                                    {formData.productType === 'affiliate' && (
+                                                        <>
+                                                            <div>
+                                                                <label className="block text-xs font-bold text-charcoal mb-1">Platform Affiliate</label>
+                                                                <input
+                                                                    name="affiliatePlatform"
+                                                                    value={formData.affiliatePlatform || 'Shopee'}
+                                                                    onChange={handleInputChange}
+                                                                    className="w-full px-3.5 py-2.5 bg-white border border-soft-brown/20 rounded-xl text-charcoal text-xs font-medium focus:outline-none focus:border-dusty-rose"
+                                                                />
+                                                            </div>
+                                                            <div className="md:col-span-2">
+                                                                <label className="block text-xs font-bold text-charcoal mb-1">Link Affiliate (HTTPS) *</label>
+                                                                <input
+                                                                    type="url"
+                                                                    name="affiliateUrl"
+                                                                    value={formData.affiliateUrl || ''}
+                                                                    onChange={handleInputChange}
+                                                                    className="w-full px-3.5 py-2.5 bg-white border border-soft-brown/20 rounded-xl text-charcoal placeholder-charcoal/40 text-xs font-medium focus:outline-none focus:border-dusty-rose"
+                                                                    placeholder="https://shopee.co.id/..."
+                                                                    required
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    )}
 
                                                     <div>
-                                                        <label className="block text-sm font-black text-cyan-300 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                            Category *
-                                                        </label>
+                                                        <label className="block text-xs font-bold text-charcoal mb-1">Kategori *</label>
                                                         <select
                                                             name="category"
                                                             value={formData.category}
                                                             onChange={handleInputChange}
-                                                            className="w-full px-4 py-3 bg-gray-900 border-2 border-cyan-500/50 corner-clip-sm text-white focus:outline-none focus:border-cyan-400 transition-all"
-                                                            style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                                                            className="w-full px-3.5 py-2.5 bg-white border border-soft-brown/20 rounded-xl text-charcoal text-xs font-medium focus:outline-none focus:border-dusty-rose"
                                                             required
                                                         >
-                                                            <option value="" className="bg-gray-900">Select Category</option>
-                                                            {categories.length > 0 ? (
-                                                                categories.map(cat => (
-                                                                    <option key={cat.id} value={cat.name} className="bg-gray-900">
-                                                                        {cat.name}
-                                                                    </option>
-                                                                ))
-                                                            ) : (
-                                                                <option value="" disabled className="bg-gray-900 text-gray-500">
-                                                                    No categories — add them in Categories page
+                                                            <option value="">Pilih Kategori</option>
+                                                            {categories.map(cat => (
+                                                                <option key={cat.id} value={cat.name}>
+                                                                    {cat.name}
                                                                 </option>
-                                                            )}
+                                                            ))}
                                                         </select>
-                                                        {categories.length === 0 && (
-                                                            <p className="text-xs text-orange-400/70 mt-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                                ⚡ Go to Categories page to create categories first
-                                                            </p>
-                                                        )}
                                                     </div>
 
                                                     <div className="md:col-span-2">
-                                                        <label className="block text-sm font-black text-cyan-300 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                            Description *
-                                                        </label>
+                                                        <label className="block text-xs font-bold text-charcoal mb-1">Deskripsi Produk *</label>
                                                         <textarea
                                                             name="description"
                                                             value={formData.description}
                                                             onChange={handleInputChange}
-                                                            className="w-full px-4 py-3 bg-gray-900 border-2 border-cyan-500/50 corner-clip-sm text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400 transition-all resize-none"
-                                                            style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                                                            className="w-full px-3.5 py-2.5 bg-white border border-soft-brown/20 rounded-xl text-charcoal placeholder-charcoal/40 text-xs font-medium resize-none focus:outline-none focus:border-dusty-rose"
                                                             rows="4"
-                                                            placeholder="Describe your product features, benefits, and specifications..."
+                                                            placeholder="Jelaskan detail buket, bunga, bahan, dan kemasan..."
                                                             required
                                                         />
-                                                        <p className="text-xs text-cyan-500/70 mt-1" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                            {formData.description.length} characters
-                                                        </p>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             {/* Pricing Section */}
-                                            <div className="bg-gray-800/50 p-6 corner-clip-sm border-2 border-green-500/30 relative overflow-hidden">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-transparent"></div>
-                                                <h3 className="text-lg font-black text-green-400 mb-4 flex items-center uppercase tracking-wide relative z-10" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                    <DollarSign className="w-5 h-5 mr-2" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 255, 0, 0.8))' }} />
-                                                    Pricing & Discount
-                                                </h3>
-                                                <div className="grid md:grid-cols-2 gap-6 relative z-10">
+                                            <div className="bg-cream/60 p-5 rounded-2xl border border-soft-brown/15 space-y-4">
+                                                <h4 className="text-xs font-bold text-charcoal uppercase tracking-wider">
+                                                    Harga & Diskon
+                                                </h4>
+                                                <div className="grid md:grid-cols-2 gap-4">
                                                     <div>
-                                                        <label className="block text-sm font-black text-green-300 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                            Harga (Rupiah) *
-                                                        </label>
-                                                        <div className="relative">
-                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-400 font-black" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                                                                Rp
-                                                            </span>
-                                                            <input
-                                                                type="number"
-                                                                step="0.01"
-                                                                name="price"
-                                                                value={formData.price}
-                                                                onChange={handleInputChange}
-                                                                className="w-full pl-8 pr-4 py-3 bg-gray-900 border-2 border-green-500/50 corner-clip-sm text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition-all"
-                                                                style={{ fontFamily: 'Orbitron, sans-serif' }}
-                                                                placeholder="0.00"
-                                                                min="0"
-                                                                required
-                                                            />
-                                                        </div>
-                                                    </div>
-
-                                                    <div>
-                                                        <label className="block text-sm font-black text-green-300 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                            Discount (%)
-                                                        </label>
-                                                        <div className="relative">
-                                                            <input
-                                                                type="number"
-                                                                name="discount"
-                                                                value={formData.discount}
-                                                                onChange={handleInputChange}
-                                                                className="w-full px-4 py-3 bg-gray-900 border-2 border-green-500/50 corner-clip-sm text-white placeholder-gray-500 focus:outline-none focus:border-green-400 transition-all pr-10"
-                                                                style={{ fontFamily: 'Orbitron, sans-serif' }}
-                                                                placeholder="0"
-                                                                min="0"
-                                                                max="100"
-                                                            />
-                                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400 font-black" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                                                                %
-                                                            </span>
-                                                        </div>
-                                                    </div>
-
-                                                    {formData.price && <div className="md:col-span-2 p-4 rounded-xl bg-rose-50"><p className="text-sm text-rose-800 font-bold mb-2">Pratinjau harga</p><span>{formatPrice(Number(formData.price) * (1 - Number(formData.discount || 0) / 100))}</span></div>}
-                                                </div>
-                                            </div>
-
-                                            {/* Product Images Section */}
-                                            <div className="bg-gray-800/50 p-6 corner-clip-sm border-2 border-purple-500/30 relative overflow-hidden">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-transparent"></div>
-                                                <h3 className="text-lg font-black text-purple-400 mb-1 flex items-center uppercase tracking-wide relative z-10" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                    <ImageIcon className="w-5 h-5 mr-2" style={{ filter: 'drop-shadow(0 0 5px rgba(147, 51, 234, 0.8))' }} />
-                                                    Product Images
-                                                </h3>
-                                                <p className="text-xs text-purple-300/60 mb-4 relative z-10 font-bold uppercase" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                    Upload up to 8 images · First image shown as main photo
-                                                </p>
-                                                <div className="relative z-10">
-                                                    <CloudinaryMultiUpload
-                                                        images={formData.images || []}
-                                                        onChange={(urls) => {
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                images: urls,
-                                                                image: urls[0] || ''
-                                                            }));
-                                                        }}
-                                                        maxImages={8}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Inventory Section */}
-                                            <div className="bg-gray-800/50 p-6 corner-clip-sm border-2 border-orange-500/30 relative overflow-hidden">
-                                                <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-transparent"></div>
-                                                <h3 className="text-lg font-black text-orange-400 mb-4 flex items-center uppercase tracking-wide relative z-10" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                    <ShoppingBag className="w-5 h-5 mr-2" style={{ filter: 'drop-shadow(0 0 5px rgba(255, 165, 0, 0.8))' }} />
-                                                    Inventory Management
-                                                </h3>
-                                                <div className="max-w-md relative z-10">
-                                                    <div>
-                                                        <label className="block text-sm font-black text-orange-300 mb-2 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                            Stok {formData.productType === 'affiliate' ? '(opsional)' : '*'}
-                                                        </label>
+                                                        <label className="block text-xs font-bold text-charcoal mb-1">Harga (Rupiah) *</label>
                                                         <input
                                                             type="number"
-                                                            name="stock"
-                                                            value={formData.stock}
+                                                            name="price"
+                                                            value={formData.price}
                                                             onChange={handleInputChange}
-                                                            className="w-full px-4 py-3 bg-gray-900 border-2 border-orange-500/50 corner-clip-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-400 transition-all"
-                                                            style={{ fontFamily: 'Orbitron, sans-serif' }}
+                                                            className="w-full px-3.5 py-2.5 bg-white border border-soft-brown/20 rounded-xl text-charcoal text-xs font-medium focus:outline-none focus:border-dusty-rose"
                                                             placeholder="0"
                                                             min="0"
-                                                            required={formData.productType !== 'affiliate'}
+                                                            required
                                                         />
-                                                        {formData.stock > 0 && (
-                                                            <div className="mt-3 p-3 corner-clip-sm bg-gray-900/80 border-2 border-orange-500/30">
-                                                                <p className={`text-sm font-black uppercase ${formData.stock > 10 ? 'text-green-400' : 'text-orange-400'}`} style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                                    {formData.stock > 10 ? (
-                                                                        <span>✓ In Stock — {formData.stock} units available</span>
-                                                                    ) : (
-                                                                        <span>⚠ Low Stock — Only {formData.stock} units left</span>
-                                                                    )}
-                                                                </p>
-                                                            </div>
-                                                        )}
-                                                        {formData.stock == 0 && (
-                                                            <p className="text-xs mt-2 text-red-400 font-black uppercase" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                                                ✗ Product will be marked as "Out of Stock"
-                                                            </p>
-                                                        )}
                                                     </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-charcoal mb-1">Diskon (%)</label>
+                                                        <input
+                                                            type="number"
+                                                            name="discount"
+                                                            value={formData.discount}
+                                                            onChange={handleInputChange}
+                                                            className="w-full px-3.5 py-2.5 bg-white border border-soft-brown/20 rounded-xl text-charcoal text-xs font-medium focus:outline-none focus:border-dusty-rose"
+                                                            placeholder="0"
+                                                            min="0"
+                                                            max="100"
+                                                        />
+                                                    </div>
+                                                    {formData.price && (
+                                                        <div className="md:col-span-2 p-3 bg-white rounded-xl border border-soft-brown/15 text-xs text-charcoal/70">
+                                                            <span>Harga setelah diskon: </span>
+                                                            <strong className="text-charcoal font-bold">
+                                                                {formatPrice(Number(formData.price) * (1 - Number(formData.discount || 0) / 100))}
+                                                            </strong>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <label className="mt-4 flex items-center gap-2 relative z-10 text-orange-200"><input type="checkbox" name="isActive" checked={formData.isActive !== false} onChange={handleInputChange}/> Produk aktif dan tampil di katalog</label>
                                             </div>
 
-                                            {/* Action Buttons */}
-                                            <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t-2 border-gray-700">
+                                            {/* Images */}
+                                            <div className="bg-cream/60 p-5 rounded-2xl border border-soft-brown/15 space-y-3">
+                                                <h4 className="text-xs font-bold text-charcoal uppercase tracking-wider">
+                                                    Foto Produk
+                                                </h4>
+                                                <CloudinaryMultiUpload
+                                                    images={formData.images || []}
+                                                    onChange={(urls) => {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            images: urls,
+                                                            image: urls[0] || ''
+                                                        }));
+                                                    }}
+                                                    maxImages={8}
+                                                />
+                                            </div>
+
+                                            {/* Stock & Status */}
+                                            <div className="bg-cream/60 p-5 rounded-2xl border border-soft-brown/15 space-y-4">
+                                                <h4 className="text-xs font-bold text-charcoal uppercase tracking-wider">
+                                                    Stok & Ketersediaan
+                                                </h4>
+                                                <div className="max-w-xs">
+                                                    <label className="block text-xs font-bold text-charcoal mb-1">
+                                                        Stok {formData.productType === 'affiliate' ? '(opsional)' : '*'}
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        name="stock"
+                                                        value={formData.stock}
+                                                        onChange={handleInputChange}
+                                                        className="w-full px-3.5 py-2.5 bg-white border border-soft-brown/20 rounded-xl text-charcoal text-xs font-medium focus:outline-none focus:border-dusty-rose"
+                                                        placeholder="0"
+                                                        min="0"
+                                                        required={formData.productType !== 'affiliate'}
+                                                    />
+                                                </div>
+                                                <label className="flex items-center gap-2 text-xs font-bold text-charcoal cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="isActive"
+                                                        checked={formData.isActive !== false}
+                                                        onChange={handleInputChange}
+                                                        className="accent-[#D9A6A0]"
+                                                    />
+                                                    Produk aktif dan tampil di katalog
+                                                </label>
+                                            </div>
+
+                                            <div className="flex gap-3 pt-2">
                                                 <button
                                                     type="submit"
-                                                    className="inline-flex items-center justify-center space-x-2 flex-1 px-6 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-black uppercase tracking-wider corner-clip-sm border-2 border-cyan-400 transition-all"
-                                                    style={{ fontFamily: 'Rajdhani, sans-serif', boxShadow: '0 0 25px rgba(0, 255, 255, 0.5)' }}
+                                                    className="btn-primary inline-flex items-center space-x-2 text-xs font-semibold"
                                                 >
-                                                    <Save className="w-5 h-5" style={{ filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.8))' }} />
-                                                    <span>{editingProduct ? 'Update Product' : 'Add Product'}</span>
+                                                    <Save className="w-4 h-4" />
+                                                    <span>{editingProduct ? 'Perbarui Produk' : 'Simpan Produk'}</span>
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={cancelEdit}
-                                                    className="px-6 py-4 bg-gray-800 hover:bg-gray-700 text-gray-300 font-black uppercase tracking-wider corner-clip-sm border-2 border-gray-600 hover:border-gray-500 transition-all"
-                                                    style={{ fontFamily: 'Rajdhani, sans-serif' }}
+                                                    className="btn-secondary text-xs"
                                                 >
-                                                    Cancel
+                                                    Batal
                                                 </button>
                                             </div>
                                         </form>
                                     </div>
                                 )}
 
-                                {/* Products — Table on desktop, Cards on mobile */}
-                                <div className="bg-gray-900 corner-clip overflow-hidden border-2 border-cyan-500/30 relative" style={{ boxShadow: '0 0 30px rgba(0, 255, 255, 0.2)' }}>
-                                    <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.1) 2px, rgba(0, 255, 255, 0.1) 4px)' }} />
-
+                                {/* Products Table / Cards */}
+                                <div className="bg-white rounded-2xl border border-soft-brown/15 shadow-sm overflow-hidden">
                                     {filteredProducts.length === 0 ? (
-                                        <div className="px-6 py-12 text-center text-gray-400 relative z-10" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                            {searchQuery ? 'No products found matching your search.' : 'No products yet. Add your first product!'}
+                                        <div className="p-12 text-center text-charcoal/50 text-xs">
+                                            {searchQuery ? 'Tidak ada produk yang cocok dengan pencarian.' : 'Belum ada produk. Tambahkan produk pertama Anda!'}
                                         </div>
                                     ) : (
                                         <>
-                                            {/* Desktop table */}
-                                            <div className="hidden md:block overflow-x-auto relative z-10">
+                                            <div className="hidden md:block overflow-x-auto">
                                                 <table className="w-full">
-                                                    <thead className="bg-gray-800/80 border-b-2 border-cyan-500/50">
+                                                    <thead className="bg-cream border-b border-soft-brown/10">
                                                         <tr>
-                                                            <th className="px-6 py-4 text-left text-sm font-black text-cyan-400 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Image</th>
-                                                            <th className="px-6 py-4 text-left text-sm font-black text-cyan-400 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Name</th>
-                                                            <th className="px-6 py-4 text-left text-sm font-black text-cyan-400 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Category</th>
-                                                            <th className="px-6 py-4 text-left text-sm font-black text-cyan-400 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Price</th>
-                                                            <th className="px-6 py-4 text-left text-sm font-black text-cyan-400 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Stock</th>
-                                                            <th className="px-6 py-4 text-left text-sm font-black text-cyan-400 uppercase tracking-wide" style={{ fontFamily: 'Rajdhani, sans-serif' }}>Actions</th>
+                                                            {['Foto', 'Nama', 'Kategori', 'Harga', 'Stok', 'Aksi'].map(h => (
+                                                                <th key={h} className="px-6 py-3.5 text-left text-xs font-bold text-charcoal/60 uppercase tracking-wider">
+                                                                    {h}
+                                                                </th>
+                                                            ))}
                                                         </tr>
                                                     </thead>
-                                                    <tbody className="divide-y divide-cyan-500/10">
-                                                        {filteredProducts.map((product) => (
-                                                            <tr key={product.id} className="hover:bg-cyan-500/5 transition-colors border-b border-cyan-500/10">
+                                                    <tbody className="divide-y divide-soft-brown/10">
+                                                        {filteredProducts.map((p) => (
+                                                            <tr key={p.id} className="hover:bg-cream/40 transition-colors">
                                                                 <td className="px-6 py-4">
-                                                                    <img src={product.image} alt={product.name} className="w-16 h-16 object-cover corner-clip border-2 border-cyan-500/30" style={{ boxShadow: '0 0 10px rgba(0, 255, 255, 0.3)' }} />
+                                                                    <img src={p.image || '/placeholder-buket.svg'} alt={p.name} className="w-14 h-14 object-cover rounded-xl border border-soft-brown/20 bg-cream" />
                                                                 </td>
                                                                 <td className="px-6 py-4">
-                                                                    <div className="font-bold text-white" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{product.name}</div>
-                                                                    <div className="text-sm text-gray-400 line-clamp-1">{product.description}</div>
+                                                                    <div className="font-bold text-charcoal text-sm">{p.name}</div>
+                                                                    <div className="text-xs text-charcoal/50 line-clamp-1">{p.description}</div>
                                                                 </td>
                                                                 <td className="px-6 py-4">
-                                                                    <span className="px-3 py-1 bg-magenta-500/20 text-magenta-300 corner-clip-sm text-sm font-black border border-magenta-500/50" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{product.category}</span>
+                                                                    <span className="px-2.5 py-1 bg-dusty-rose/15 text-dusty-rose-dark rounded-full text-xs font-semibold">
+                                                                        {p.category}
+                                                                    </span>
                                                                 </td>
                                                                 <td className="px-6 py-4">
-                                                                    <div className="font-black text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>{formatPrice(product.price)}</div>
-                                                                    {product.discount > 0 && <div className="text-sm text-red-400">-{product.discount}%</div>}
+                                                                    <div className="font-bold text-charcoal text-sm">{formatPrice(p.price)}</div>
+                                                                    {p.discount > 0 && <div className="text-[11px] text-red-500 font-semibold">-{p.discount}%</div>}
                                                                 </td>
                                                                 <td className="px-6 py-4">
-                                                                    <span className={`font-black text-sm ${product.stock > 10 ? 'text-green-400' : 'text-orange-400'}`} style={{ fontFamily: 'Rajdhani, sans-serif' }}>{product.stock || 0}</span>
+                                                                    <span className={`font-semibold text-xs ${p.stock > 10 ? 'text-green-700' : 'text-amber-700'}`}>
+                                                                        {p.productType === 'affiliate' ? 'Shopee' : p.stock || 0}
+                                                                    </span>
                                                                 </td>
                                                                 <td className="px-6 py-4">
-                                                                    <div className="flex space-x-2">
+                                                                    <div className="flex space-x-1.5">
                                                                         <button
-                                                                            onClick={() => handleToggleFeatured(product)}
-                                                                            className={`p-2 corner-clip-sm border-2 transition-all ${product.isFeatured ? 'text-yellow-400 border-yellow-500/50 bg-yellow-500/10' : 'text-gray-500 border-gray-700 hover:border-yellow-500/30 hover:text-yellow-400/70'}`}
-                                                                            title={product.isFeatured ? "Unfeature" : "Feature on Home"}
-                                                                            style={product.isFeatured ? { boxShadow: '0 0 10px rgba(234, 179, 8, 0.3)' } : {}}
+                                                                            onClick={() => handleToggleFeatured(p)}
+                                                                            className={`p-2 rounded-lg border transition ${p.isFeatured ? 'text-amber-500 bg-amber-50 border-amber-200' : 'text-charcoal/30 border-soft-brown/20 hover:text-amber-500'}`}
+                                                                            title={p.isFeatured ? 'Batal jadikan unggulan' : 'Jadikan unggulan di Beranda'}
                                                                         >
-                                                                            <Star className={`w-4 h-4 ${product.isFeatured ? 'fill-yellow-400' : ''}`} />
+                                                                            <Star className={`w-4 h-4 ${p.isFeatured ? 'fill-amber-500' : ''}`} />
                                                                         </button>
-                                                                        <button onClick={() => startEdit(product)} className="p-2 text-cyan-400 hover:bg-cyan-500/20 corner-clip-sm border-2 border-cyan-500/50 hover:border-cyan-400 transition-all" title="Edit" style={{ boxShadow: '0 0 10px rgba(0, 255, 255, 0.2)' }}>
-                                                                            <Edit2 className="w-4 h-4" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 255, 255, 0.6))' }} />
+                                                                        <button onClick={() => startEdit(p)} className="p-2 text-soft-brown hover:text-charcoal hover:bg-cream rounded-lg border border-soft-brown/20 transition" title="Edit">
+                                                                            <Edit2 className="w-4 h-4" />
                                                                         </button>
-                                                                        <button onClick={() => openDeleteModal(product.id)} className="p-2 text-red-400 hover:bg-red-500/20 corner-clip-sm border-2 border-red-500/50 hover:border-red-400 transition-all" title="Delete" style={{ boxShadow: '0 0 10px rgba(255, 0, 0, 0.2)' }}>
-                                                                            <Trash2 className="w-4 h-4" style={{ filter: 'drop-shadow(0 0 5px rgba(255, 0, 0, 0.6))' }} />
+                                                                        <button onClick={() => openDeleteModal(p.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition" title="Hapus">
+                                                                            <Trash2 className="w-4 h-4" />
                                                                         </button>
                                                                     </div>
                                                                 </td>
@@ -1262,32 +1037,30 @@ const AdminDashboard = () => {
                                                 </table>
                                             </div>
 
-                                            {/* Mobile cards */}
-                                            <div className="md:hidden divide-y divide-cyan-500/10 relative z-10">
-                                                {filteredProducts.map((product) => (
-                                                    <div key={product.id} className="flex items-center gap-3 p-4 hover:bg-cyan-500/5 transition-colors">
-                                                        <img src={product.image} alt={product.name} className="w-14 h-14 object-cover corner-clip border-2 border-cyan-500/30 flex-shrink-0" style={{ boxShadow: '0 0 8px rgba(0, 255, 255, 0.3)' }} />
+                                            {/* Mobile Cards */}
+                                            <div className="md:hidden divide-y divide-soft-brown/10">
+                                                {filteredProducts.map((p) => (
+                                                    <div key={p.id} className="flex items-center gap-3 p-4 hover:bg-cream/40 transition">
+                                                        <img src={p.image || '/placeholder-buket.svg'} alt={p.name} className="w-14 h-14 object-cover rounded-xl border border-soft-brown/20 flex-shrink-0 bg-cream" />
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="font-black text-white text-sm truncate" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{product.name}</p>
-                                                            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                                <span className="text-xs px-2 py-0.5 bg-magenta-500/20 text-magenta-300 corner-clip-sm border border-magenta-500/40" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{product.category}</span>
-                                                                <span className="font-black text-cyan-400 text-sm" style={{ fontFamily: 'Orbitron, sans-serif' }}>{formatPrice(product.price)}</span>
-                                                                {product.discount > 0 && <span className="text-xs text-red-400">-{product.discount}%</span>}
+                                                            <p className="font-bold text-charcoal text-sm truncate">{p.name}</p>
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <span className="text-[10px] px-2 py-0.5 bg-dusty-rose/15 text-dusty-rose-dark rounded-full font-semibold">{p.category}</span>
+                                                                <span className="font-bold text-charcoal text-xs">{formatPrice(p.price)}</span>
                                                             </div>
-                                                            <p className={`text-xs font-bold mt-1 ${product.stock > 10 ? 'text-green-400' : 'text-orange-400'}`} style={{ fontFamily: 'Rajdhani, sans-serif' }}>Stock: {product.stock || 0}</p>
+                                                            <p className={`text-[11px] mt-1 font-semibold ${p.stock > 10 ? 'text-green-700' : 'text-amber-700'}`}>
+                                                                Stok: {p.productType === 'affiliate' ? 'Shopee' : p.stock || 0}
+                                                            </p>
                                                         </div>
-                                                        <div className="flex flex-col gap-2 flex-shrink-0">
-                                                            <button
-                                                                onClick={() => handleToggleFeatured(product)}
-                                                                className={`p-2 corner-clip-sm border-2 transition-all ${product.isFeatured ? 'text-yellow-400 border-yellow-500/50 bg-yellow-500/10' : 'text-gray-500 border-gray-700'}`}
-                                                            >
-                                                                <Star className={`w-4 h-4 ${product.isFeatured ? 'fill-yellow-400' : ''}`} />
+                                                        <div className="flex flex-col gap-1.5 flex-shrink-0">
+                                                            <button onClick={() => handleToggleFeatured(p)} className={`p-1.5 rounded-lg border ${p.isFeatured ? 'text-amber-500 bg-amber-50 border-amber-200' : 'text-charcoal/30 border-soft-brown/20'}`}>
+                                                                <Star className={`w-3.5 h-3.5 ${p.isFeatured ? 'fill-amber-500' : ''}`} />
                                                             </button>
-                                                            <button onClick={() => startEdit(product)} className="p-2 text-cyan-400 hover:bg-cyan-500/20 corner-clip-sm border-2 border-cyan-500/50 transition-all">
-                                                                <Edit2 className="w-4 h-4" />
+                                                            <button onClick={() => startEdit(p)} className="p-1.5 text-soft-brown hover:text-charcoal rounded-lg border border-soft-brown/20">
+                                                                <Edit2 className="w-3.5 h-3.5" />
                                                             </button>
-                                                            <button onClick={() => openDeleteModal(product.id)} className="p-2 text-red-400 hover:bg-red-500/20 corner-clip-sm border-2 border-red-500/50 transition-all">
-                                                                <Trash2 className="w-4 h-4" />
+                                                            <button onClick={() => openDeleteModal(p.id)} className="p-1.5 text-red-600 rounded-lg border border-red-200">
+                                                                <Trash2 className="w-3.5 h-3.5" />
                                                             </button>
                                                         </div>
                                                     </div>
@@ -1297,8 +1070,7 @@ const AdminDashboard = () => {
                                     )}
                                 </div>
                             </div>
-                        )
-                        }
+                        )}
 
                         {/* Categories View */}
                         {activeTab === 'categories' && (
@@ -1314,15 +1086,6 @@ const AdminDashboard = () => {
                             </div>
                         )}
 
-                        {/* Customers View */}
-                        {activeTab === 'customers' && (
-                            <div className="animate-fade-in">
-                                <AdminCustomers />
-                            </div>
-                        )}
-
-                        {/* Bank Accounts View */}
-
                         {/* Settings View */}
                         {activeTab === 'settings' && (
                             <div className="animate-fade-in">
@@ -1330,8 +1093,6 @@ const AdminDashboard = () => {
                             </div>
                         )}
                     </div>
-
-
                 </main>
             </div>
         </>

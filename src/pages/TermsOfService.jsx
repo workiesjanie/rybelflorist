@@ -1,2 +1,28 @@
-const TermsOfService = () => <main className="max-w-3xl mx-auto px-4 py-12"><article className="card p-6 sm:p-10"><h1 className="text-3xl font-bold">Syarat Layanan</h1><p className="mt-2 text-sm text-rose-800">Draf Buket Bahagia — lengkapi kebijakan usaha dan tanggal berlaku sebelum produksi.</p><div className="mt-8 space-y-5 leading-relaxed"><section><h2 className="text-xl font-bold">Pemesanan</h2><p>Pengiriman formulir checkout membuat permintaan pesanan berstatus pending, bukan pembayaran atau jaminan ketersediaan. Admin akan mengonfirmasi harga, stok, tanggal pemenuhan, ongkir, dan instruksi pembayaran melalui WhatsApp.</p></section><section><h2 className="text-xl font-bold">Produk dan stok</h2><p>Foto, warna, dan bentuk bunga dapat berbeda sesuai ketersediaan bahan. Toko akan menghubungi pelanggan jika perubahan diperlukan. Pesanan baru dianggap terkonfirmasi setelah admin menghubungi pelanggan.</p></section><section><h2 className="text-xl font-bold">Tautan affiliate</h2><p>Produk perlengkapan affiliate dijual melalui platform tujuan. Harga, ketersediaan, pembayaran, pengiriman, pengembalian, dan layanan produk tersebut mengikuti ketentuan penjual/platform terkait. Buket Bahagia dapat menerima komisi affiliate tanpa biaya tambahan untuk pelanggan.</p></section><section><h2 className="text-xl font-bold">Kontak dan pembaruan</h2><p>Isi nomor WhatsApp dan kontak resmi toko, wilayah layanan, ketentuan pembatalan/perubahan pesanan, pengiriman, komplain, serta mekanisme penyelesaian sengketa sebelum menerbitkan aplikasi.</p></section></div></article></main>;
+const TermsOfService = () => (
+  <main className="max-w-3xl mx-auto px-4 py-12">
+    <article className="card p-6 sm:p-10">
+      <h1 className="text-3xl font-bold text-charcoal">Syarat Layanan</h1>
+      <p className="mt-2 text-sm text-charcoal/70">Draf rybelflorist — lengkapi kebijakan usaha dan tanggal berlaku sebelum produksi.</p>
+      <div className="mt-8 space-y-5 leading-relaxed text-charcoal/80">
+        <section>
+          <h2 className="text-xl font-bold text-charcoal">Pemesanan</h2>
+          <p>Pengiriman formulir checkout membuat permintaan pesanan berstatus pending, bukan pembayaran atau jaminan ketersediaan. Admin akan mengonfirmasi harga, stok, tanggal pemenuhan, ongkir, dan instruksi pembayaran melalui WhatsApp.</p>
+        </section>
+        <section>
+          <h2 className="text-xl font-bold text-charcoal">Produk dan stok</h2>
+          <p>Foto, warna, dan bentuk bunga dapat berbeda sesuai ketersediaan bahan. Toko akan menghubungi pelanggan jika perubahan diperlukan. Pesanan baru dianggap terkonfirmasi setelah admin menghubungi pelanggan.</p>
+        </section>
+        <section>
+          <h2 className="text-xl font-bold text-charcoal">Tautan affiliate</h2>
+          <p>Produk perlengkapan affiliate dijual melalui platform tujuan. Harga, ketersediaan, pembayaran, pengiriman, pengembalian, dan layanan produk tersebut mengikuti ketentuan penjual/platform terkait. rybelflorist dapat menerima komisi affiliate tanpa biaya tambahan untuk pelanggan.</p>
+        </section>
+        <section>
+          <h2 className="text-xl font-bold text-charcoal">Kontak dan pembaruan</h2>
+          <p>Isi nomor WhatsApp dan kontak resmi toko, wilayah layanan, ketentuan pembatalan/perubahan pesanan, pengiriman, komplain, serta mekanisme penyelesaian sengketa sebelum menerbitkan aplikasi.</p>
+        </section>
+      </div>
+    </article>
+  </main>
+);
+
 export default TermsOfService;

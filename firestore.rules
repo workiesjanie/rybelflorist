@@ -7,49 +7,45 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true;
     }
 
+    // Admin authentication profile
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
       allow create: if signedIn() && request.auth.uid == userId
         && request.resource.data.get('isAdmin', false) == false;
-      allow update: if isAdmin() || (signedIn() && request.auth.uid == userId
-        && request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName','photoURL','phone','address','city','state','zipCode','country','updatedAt']));
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
+    // Katalog produk publik, modifikasi hanya oleh admin
     match /products/{productId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
+
+    // Kategori produk publik, modifikasi hanya oleh admin
     match /categories/{categoryId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
+
+    // Pesanan (Guest Checkout): Siapa saja bisa membuat order pending, baca/ubah hanya admin
     match /orders/{orderId} {
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid
-        && request.resource.data.get('orderStatus', '') == 'pending'
-        && request.resource.data.get('status', '') == 'pending';
-      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow update, delete: if isAdmin();
+      allow create: if request.resource.data.get('orderStatus', '') == 'pending'
+        && request.resource.data.get('status', '') == 'pending'
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0;
+      allow read, update, delete: if isAdmin();
     }
+
+    // Pengaturan toko & ongkir publik
     match /settings/{docId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
-    match /reviews/{reviewId} {
-      allow read: if true;
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
-    }
-    match /carts/{userId} {
-      allow read, write: if signedIn() && request.auth.uid == userId;
-    }
-    match /wishlists/{userId} {
-      allow read, write: if signedIn() && request.auth.uid == userId;
-    }
+
+    // Log aktivitas admin
     match /activityLogs/{logId} {
-      allow create: if isAdmin();
-      allow read, update, delete: if isAdmin();
+      allow read, write: if isAdmin();
     }
   }
 }

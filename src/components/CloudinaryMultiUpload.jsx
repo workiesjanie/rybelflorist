@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Upload, X, Plus, ImageIcon, AlertCircle, GripVertical } from 'lucide-react';
+import { Upload, X, Plus, ImageIcon, AlertCircle } from 'lucide-react';
 
 /**
  * CloudinaryMultiUpload
@@ -16,7 +16,7 @@ const CloudinaryMultiUpload = ({ images = [], onChange, maxImages = 8 }) => {
         setError('');
 
         if (!window.cloudinary) {
-            setError('Cloudinary script not loaded. Please refresh the page.');
+            setError('Cloudinary script tidak termuat. Silakan refresh halaman.');
             return;
         }
 
@@ -24,21 +24,17 @@ const CloudinaryMultiUpload = ({ images = [], onChange, maxImages = 8 }) => {
         const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
         if (!cloudName || !uploadPreset) {
-            setError('Cloudinary is not configured. Check your environment variables.');
+            setError('Cloudinary belum dikonfigurasi. Periksa environment variables.');
             return;
         }
 
         const remaining = maxImages - images.length;
         if (remaining <= 0) {
-            setError(`Maximum ${maxImages} images allowed. Remove one to add more.`);
+            setError(`Maksimal ${maxImages} gambar. Hapus gambar untuk menambah.`);
             return;
         }
 
         try {
-            // Stale-closure fix: snapshot existing images at widget-open time.
-            // New uploads are pushed into `sessionUploads` (a plain mutable array),
-            // so every success callback sees all previous uploads in this session.
-            // This prevents photo 2 from overwriting photo 1.
             const baseImages = [...images];
             const sessionUploads = [];
 
@@ -60,12 +56,11 @@ const CloudinaryMultiUpload = ({ images = [], onChange, maxImages = 8 }) => {
                 },
                 (err, result) => {
                     if (err) {
-                        setError(`Upload failed: ${err.message || 'Unknown error'}`);
+                        setError(`Upload gagal: ${err.message || 'Error tidak diketahui'}`);
                         setUploading(false);
                         return;
                     }
                     if (result.event === 'success') {
-                        // Append to session accumulator, then merge with base snapshot
                         sessionUploads.push(result.info.secure_url);
                         onChange([...baseImages, ...sessionUploads]);
                     }
@@ -77,7 +72,7 @@ const CloudinaryMultiUpload = ({ images = [], onChange, maxImages = 8 }) => {
             setUploading(true);
             widget.open();
         } catch {
-            setError('Failed to open upload widget. Please try again.');
+            setError('Gagal membuka upload widget. Silakan coba lagi.');
             setUploading(false);
         }
     };
@@ -101,15 +96,13 @@ const CloudinaryMultiUpload = ({ images = [], onChange, maxImages = 8 }) => {
         <div className="space-y-4">
             {/* Error */}
             {error && (
-                <div className="flex items-start gap-3 p-4 bg-red-500/10 border-2 border-red-500/50 corner-clip-sm"
-                    style={{ boxShadow: '0 0 15px rgba(239,68,68,0.2)' }}>
-                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5"
-                        style={{ filter: 'drop-shadow(0 0 5px rgba(239,68,68,0.8))' }} />
+                <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                     <div>
-                        <p className="font-black text-red-400 uppercase text-sm" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                            Upload Error
+                        <p className="font-bold text-red-700 text-sm">
+                            Gagal Unggah
                         </p>
-                        <p className="text-red-300 text-sm mt-0.5" style={{ fontFamily: 'Rajdhani, sans-serif' }}>{error}</p>
+                        <p className="text-red-600 text-sm mt-0.5">{error}</p>
                     </div>
                 </div>
             )}
@@ -120,11 +113,9 @@ const CloudinaryMultiUpload = ({ images = [], onChange, maxImages = 8 }) => {
                     {images.map((url, idx) => (
                         <div
                             key={url + idx}
-                            className={`relative group corner-clip overflow-hidden border-2 aspect-square ${idx === 0
-                                ? 'border-cyan-500/70'
-                                : 'border-purple-500/40 hover:border-purple-400'
-                                } transition-all`}
-                            style={{ boxShadow: idx === 0 ? '0 0 15px rgba(0,255,255,0.3)' : '0 0 8px rgba(147,51,234,0.2)' }}
+                            className={`relative group rounded-xl overflow-hidden border aspect-square ${
+                                idx === 0 ? 'border-dusty-rose ring-2 ring-dusty-rose/20' : 'border-soft-brown/20 hover:border-dusty-rose'
+                            } transition-all bg-cream`}
                         >
                             <img
                                 src={url}
@@ -134,48 +125,44 @@ const CloudinaryMultiUpload = ({ images = [], onChange, maxImages = 8 }) => {
 
                             {/* Main label badge */}
                             {idx === 0 && (
-                                <div className="absolute bottom-0 left-0 right-0 bg-cyan-500/80 py-0.5 text-center">
-                                    <span className="text-white text-[10px] font-black uppercase tracking-widest"
-                                        style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                        Main
+                                <div className="absolute bottom-0 left-0 right-0 bg-dusty-rose py-0.5 text-center">
+                                    <span className="text-white text-[10px] font-bold uppercase tracking-widest">
+                                        Utama
                                     </span>
                                 </div>
                             )}
 
                             {/* Overlay actions */}
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-1">
-                                {/* Move left/right */}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-1">
                                 <div className="flex gap-1">
                                     <button
                                         type="button"
                                         onClick={() => moveImage(idx, idx - 1)}
                                         disabled={idx === 0}
-                                        className="p-1 bg-gray-800/90 border border-gray-600 corner-clip-sm text-gray-300 hover:text-white hover:border-cyan-400 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-xs font-black"
-                                        title="Move left"
+                                        className="p-1 bg-white/90 border border-soft-brown/25 rounded text-charcoal hover:bg-white transition disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold"
+                                        title="Pindah ke kiri"
                                     >←</button>
                                     <button
                                         type="button"
                                         onClick={() => moveImage(idx, idx + 1)}
                                         disabled={idx === images.length - 1}
-                                        className="p-1 bg-gray-800/90 border border-gray-600 corner-clip-sm text-gray-300 hover:text-white hover:border-cyan-400 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-xs font-black"
-                                        title="Move right"
+                                        className="p-1 bg-white/90 border border-soft-brown/25 rounded text-charcoal hover:bg-white transition disabled:opacity-30 disabled:cursor-not-allowed text-xs font-bold"
+                                        title="Pindah ke kanan"
                                     >→</button>
                                 </div>
-                                {/* Remove */}
                                 <button
                                     type="button"
                                     onClick={() => removeImage(idx)}
-                                    className="p-1.5 bg-red-500/80 hover:bg-red-500 border border-red-400 corner-clip-sm text-white transition-all"
-                                    title="Remove image"
+                                    className="p-1.5 bg-red-600 hover:bg-red-700 text-white rounded transition"
+                                    title="Hapus gambar"
                                 >
                                     <X className="w-3.5 h-3.5" />
                                 </button>
                             </div>
 
                             {/* Image number badge */}
-                            <div className="absolute top-1.5 left-1.5 w-5 h-5 bg-gray-900/80 border border-gray-600 corner-clip-sm flex items-center justify-center">
-                                <span className="text-[10px] font-black text-gray-300"
-                                    style={{ fontFamily: 'Orbitron, sans-serif' }}>{idx + 1}</span>
+                            <div className="absolute top-1.5 left-1.5 w-5 h-5 bg-white/90 border border-soft-brown/20 rounded-md flex items-center justify-center">
+                                <span className="text-[10px] font-bold text-charcoal">{idx + 1}</span>
                             </div>
                         </div>
                     ))}
@@ -186,13 +173,11 @@ const CloudinaryMultiUpload = ({ images = [], onChange, maxImages = 8 }) => {
                             type="button"
                             onClick={openWidget}
                             disabled={uploading}
-                            className="aspect-square corner-clip border-2 border-dashed border-purple-500/40 hover:border-purple-400 bg-gray-900/60 hover:bg-purple-500/5 transition-all flex flex-col items-center justify-center gap-2 group disabled:opacity-50"
-                            style={{ boxShadow: '0 0 10px rgba(147,51,234,0.1)' }}
+                            className="aspect-square rounded-xl border-2 border-dashed border-soft-brown/25 hover:border-dusty-rose bg-cream hover:bg-cream/70 transition-all flex flex-col items-center justify-center gap-2 group disabled:opacity-50"
                         >
-                            <Plus className="w-6 h-6 text-purple-400/60 group-hover:text-purple-300 transition-colors" />
-                            <span className="text-xs text-gray-500 group-hover:text-gray-300 font-bold uppercase transition-colors"
-                                style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                                Add
+                            <Plus className="w-6 h-6 text-dusty-rose group-hover:scale-110 transition-transform" />
+                            <span className="text-xs text-charcoal/60 group-hover:text-charcoal font-semibold transition-colors">
+                                Tambah
                             </span>
                         </button>
                     )}
@@ -203,23 +188,17 @@ const CloudinaryMultiUpload = ({ images = [], onChange, maxImages = 8 }) => {
             {images.length === 0 && (
                 <div
                     onClick={openWidget}
-                    className="relative corner-clip border-2 border-dashed border-purple-500/40 hover:border-purple-400 bg-gray-900/60 hover:bg-purple-500/5 transition-all duration-300 cursor-pointer group"
-                    style={{ boxShadow: '0 0 15px rgba(147,51,234,0.1)' }}
+                    className="relative rounded-2xl border-2 border-dashed border-soft-brown/25 hover:border-dusty-rose bg-cream hover:bg-cream/70 transition-all duration-300 cursor-pointer group"
                 >
-                    <div className="absolute inset-0 opacity-5 pointer-events-none"
-                        style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(147,51,234,0.2) 2px, rgba(147,51,234,0.2) 4px)' }} />
-                    <div className="flex flex-col items-center justify-center py-12 px-6 relative z-10">
-                        <div className="w-20 h-20 corner-clip bg-purple-500/10 border-2 border-purple-500/30 group-hover:border-purple-400 flex items-center justify-center mb-4 transition-all group-hover:scale-110"
-                            style={{ boxShadow: '0 0 20px rgba(147,51,234,0.2)' }}>
-                            <ImageIcon className="w-9 h-9 text-purple-400/60 group-hover:text-purple-300 transition-colors"
-                                style={{ filter: 'drop-shadow(0 0 8px rgba(147,51,234,0.6))' }} />
+                    <div className="flex flex-col items-center justify-center py-10 px-6 relative z-10">
+                        <div className="w-16 h-16 rounded-2xl bg-white border border-soft-brown/20 group-hover:border-dusty-rose flex items-center justify-center mb-3 transition-transform group-hover:scale-105 shadow-sm">
+                            <ImageIcon className="w-8 h-8 text-dusty-rose" />
                         </div>
-                        <p className="font-black text-purple-300 uppercase tracking-wide text-lg mb-1"
-                            style={{ fontFamily: 'Rajdhani, sans-serif', textShadow: '0 0 10px rgba(147,51,234,0.5)' }}>
-                            No Images Selected
+                        <p className="font-bold text-charcoal text-base mb-1">
+                            Belum Ada Foto Produk
                         </p>
-                        <p className="text-sm text-gray-400 font-bold" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                            Click to upload product photos
+                        <p className="text-xs text-charcoal/60">
+                            Klik untuk memilih dan mengunggah foto
                         </p>
                     </div>
                 </div>
@@ -230,46 +209,37 @@ const CloudinaryMultiUpload = ({ images = [], onChange, maxImages = 8 }) => {
                 type="button"
                 onClick={openWidget}
                 disabled={uploading || !canAdd}
-                className="w-full inline-flex items-center justify-center gap-3 px-6 py-4 corner-clip-sm border-2 font-black uppercase tracking-wider transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                    fontFamily: 'Rajdhani, sans-serif',
-                    background: 'linear-gradient(135deg, rgba(147,51,234,0.3), rgba(109,40,217,0.3))',
-                    borderColor: 'rgba(147,51,234,0.7)',
-                    boxShadow: '0 0 20px rgba(147,51,234,0.35)',
-                    color: 'rgba(216,180,254,1)'
-                }}
-                onMouseEnter={e => { if (!uploading && canAdd) { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(147,51,234,0.5), rgba(109,40,217,0.5))'; e.currentTarget.style.boxShadow = '0 0 30px rgba(147,51,234,0.6)'; } }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(147,51,234,0.3), rgba(109,40,217,0.3))'; e.currentTarget.style.boxShadow = '0 0 20px rgba(147,51,234,0.35)'; }}
+                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-soft-brown/25 bg-white hover:bg-cream text-charcoal font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
                 {uploading ? (
                     <>
-                        <div className="w-5 h-5 border-2 border-purple-400/40 border-t-purple-400 rounded-full animate-spin" />
-                        <span>Opening Uploader...</span>
+                        <div className="w-4 h-4 border-2 border-dusty-rose border-t-transparent rounded-full animate-spin" />
+                        <span>Membuka Uploader...</span>
                     </>
                 ) : (
                     <>
-                        <Upload className="w-5 h-5" style={{ filter: 'drop-shadow(0 0 5px rgba(147,51,234,0.8))' }} />
+                        <Upload className="w-4 h-4 text-dusty-rose" />
                         <span>
                             {!canAdd
-                                ? `Max ${maxImages} Images Reached`
+                                ? `Maksimal ${maxImages} Foto Tercapai`
                                 : images.length > 0
-                                    ? `⚡ Add More Images (${images.length}/${maxImages})`
-                                    : '⚡ Upload Images'}
+                                    ? `Tambah Foto (${images.length}/${maxImages})`
+                                    : 'Unggah Foto Produk'}
                         </span>
                     </>
                 )}
             </button>
 
             {/* Hints */}
-            <div className="flex items-center justify-between text-xs text-gray-500 font-bold uppercase" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                <span>JPG · PNG · GIF · WebP · Max 5MB each</span>
-                <span className={images.length >= maxImages ? 'text-red-400' : 'text-gray-500'}>
-                    {images.length}/{maxImages} images
+            <div className="flex items-center justify-between text-xs text-charcoal/50">
+                <span>JPG · PNG · WebP · Maks 5MB per file</span>
+                <span className={images.length >= maxImages ? 'text-red-500 font-semibold' : ''}>
+                    {images.length}/{maxImages} foto
                 </span>
             </div>
             {images.length > 0 && (
-                <p className="text-xs text-cyan-500/60 font-bold" style={{ fontFamily: 'Rajdhani, sans-serif' }}>
-                    ⚡ First image is the main display image. Use ← → to reorder.
+                <p className="text-xs text-dusty-rose-dark">
+                    * Foto pertama akan dijadikan foto sampul utama produk. Gunakan panah untuk mengatur urutan.
                 </p>
             )}
         </div>
