@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, onSnapshot, query, limit, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, limit, where, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { ArrowRight, ShoppingBag, ChevronLeft, ChevronRight, Sparkles, HeartHandshake, MessageCircle } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
@@ -8,7 +8,29 @@ import ProductCard from '../components/ProductCard';
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [heroSettings, setHeroSettings] = useState({
+    titleLine1: 'Rangkai Momen',
+    titleLine2: 'Penuh Bahagia',
+    subtitle: 'Buket bunga, boneka, uang, dan snack istimewa untuk wisuda, ulang tahun, anniversary, dan hari spesialmu. Dibuat rapi dan penuh cinta di rybelflorist.',
+    heroImageUrl: '/hero.jpeg',
+  });
   const sliderRef = useRef(null);
+
+  useEffect(() => {
+    const unsubHero = onSnapshot(
+      doc(db, 'settings', 'hero'),
+      (snap) => {
+        if (snap.exists()) {
+          setHeroSettings((prev) => ({ ...prev, ...snap.data() }));
+        }
+      },
+      (error) => {
+        console.error('Error fetching hero settings:', error);
+      }
+    );
+
+    return () => unsubHero();
+  }, []);
 
   useEffect(() => {
     const q = query(
@@ -62,10 +84,16 @@ const Home = () => {
                 <Sparkles size={14} className="text-dusty-rose" /> Florist & Bucket Specialist
               </span>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-charcoal leading-tight">
-                Rangkai Momen Indah Bersama <span className="text-dusty-rose">rybelflorist</span>
+                {heroSettings.titleLine1 || 'Rangkai Momen'}{' '}
+                {heroSettings.titleLine2 && (
+                  <>
+                    <br className="hidden sm:block" />
+                    <span className="text-dusty-rose">{heroSettings.titleLine2}</span>
+                  </>
+                )}
               </h1>
               <p className="text-base sm:text-lg text-charcoal/70 leading-relaxed max-w-xl mx-auto md:mx-0">
-                Pilihan buket wisuda, ulang tahun, buket artificial, serta rekomendasi perlengkapan buket terbaik dengan pemesanan praktis langsung via WhatsApp.
+                {heroSettings.subtitle || 'Pilihan buket wisuda, ulang tahun, buket artificial, serta rekomendasi perlengkapan buket terbaik dengan pemesanan praktis langsung via WhatsApp.'}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start pt-2">
                 <Link
@@ -75,21 +103,31 @@ const Home = () => {
                   <span>Pilih Buket Sekarang</span>
                   <ArrowRight className="w-5 h-5" />
                 </Link>
-                <Link
-                  to="/cart"
-                  className="px-6 py-3 rounded-full border border-soft-brown text-charcoal font-bold hover:bg-soft-brown/10 transition text-center text-base"
+                <a
+                  href={`https://wa.me/${import.meta.env.VITE_STORE_WHATSAPP_NUMBER || '62895402883785'}?text=${encodeURIComponent('Halo rybelflorist! Saya ingin konsultasi mengenai buket. Bisa dibantu?')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full border border-soft-brown text-charcoal font-bold hover:bg-soft-brown/10 transition text-center text-base"
                 >
-                  Cek Keranjang
-                </Link>
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Konsultasi</span>
+                </a>
               </div>
             </div>
 
             <div className="relative hidden md:block">
-              <div className="relative mx-auto max-w-md rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-white aspect-square">
+              <div className="relative mx-auto max-w-sm lg:max-w-md rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-white">
                 <img
-                  src="/placeholder-buket.svg"
+                  src={
+                    heroSettings.heroImageUrl && heroSettings.heroImageUrl !== '/placeholder-buket.svg'
+                      ? heroSettings.heroImageUrl
+                      : '/hero.jpeg'
+                  }
                   alt="Koleksi buket rybelflorist"
-                  className="w-full h-full object-cover p-6 bg-cream"
+                  className="w-full h-auto object-contain block"
+                  onError={(e) => {
+                    e.currentTarget.src = '/hero.jpeg';
+                  }}
                 />
               </div>
             </div>
@@ -210,14 +248,23 @@ const Home = () => {
           <p className="text-white/80 text-sm sm:text-base leading-relaxed">
             Ingin custom buket atau butuh perlengkapan membuat buket sendiri? Langsung pilih produk dan hubungi kami via WhatsApp.
           </p>
-          <div className="pt-2">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 bg-white text-dusty-rose px-8 py-3.5 rounded-full font-bold hover:bg-cream transition shadow-lg text-sm sm:text-base"
+              className="inline-flex items-center justify-center gap-2 bg-white text-dusty-rose px-8 py-3.5 rounded-full font-bold hover:bg-cream transition shadow-lg text-sm sm:text-base"
             >
               <span>Mulai Belanja</span>
               <ArrowRight className="w-5 h-5" />
             </Link>
+            <a
+              href={`https://wa.me/${import.meta.env.VITE_STORE_WHATSAPP_NUMBER || '62895402883785'}?text=${encodeURIComponent('Halo rybelflorist! Saya tertarik dengan buket kalian dan ingin konsultasi.')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 border-2 border-white text-white px-8 py-3.5 rounded-full font-bold hover:bg-white/10 transition text-sm sm:text-base"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span>Konsultasi via WhatsApp</span>
+            </a>
           </div>
         </div>
       </section>

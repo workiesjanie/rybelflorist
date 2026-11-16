@@ -39,7 +39,7 @@ const AdminSettings = () => {
         titleLine2: 'Penuh Bahagia',
         subtitle: 'Buket istimewa untuk hari yang ingin dirayakan.',
         bgImageUrl: '',
-        heroImageUrl: '/placeholder-buket.svg',
+        heroImageUrl: '/hero.jpeg',
     });
     const [heroLoading, setHeroLoading] = useState(false);
     const [heroSaving, setHeroSaving] = useState(false);
